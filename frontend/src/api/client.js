@@ -81,3 +81,6 @@ export const getCompletionReport = (trainingId) =>
 
 export const getAuditLogs = () =>
   api.get('/admin/audit-logs').then((r) => r.data)
+
+export const getCompletionByEnrollment = (enrollmentId) =>
+  api.get(`/instructor/completions-by-enrollment/${enrollmentId}`).then(r => r.data)

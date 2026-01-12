@@ -8,6 +8,7 @@ import PublicTrainingsPage from './pages/PublicTrainingsPage'
 import ParticipantDashboard from './pages/participant/Dashboard'
 import InstructorDashboard from './pages/instructor/Dashboard'
 import AdminDashboard from './pages/admin/Dashboard'
+import CertificatePage from './pages/participant/CertificatePage'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { token, user } = useAuthStore()
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/certificate/:enrollmentId" element={<CertificatePage />} />
         <Route path="/" element={<MainLayout />}>
           <Route index element={<PublicTrainingsPage />} />
           <Route path="login" element={<LoginPage />} />
