@@ -7,12 +7,14 @@ class TrainingCreate(BaseModel):
     description: Optional[str] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
+    category: Optional[str] = None
 
 class TrainingUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
+    category: Optional[str] = None
 
 class TrainingOut(BaseModel):
     id: UUID4
@@ -25,6 +27,7 @@ class TrainingOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     model_config = {"from_attributes": True}
+    category: Optional[str] = None
 
 class EnrollmentOut(BaseModel):
     id: UUID4
@@ -33,6 +36,7 @@ class EnrollmentOut(BaseModel):
     enrollment_status: str
     enrolled_at: datetime
     canceled_at: Optional[datetime]
+    participant_name: Optional[str] = None
     model_config = {"from_attributes": True}
 
 class AttendanceCreate(BaseModel):

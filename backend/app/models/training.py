@@ -4,6 +4,7 @@ from sqlalchemy import String, DateTime, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.session import Base
+from typing import Optional
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -32,6 +33,7 @@ class Training(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="training")
+    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
 class Enrollment(Base):
     __tablename__ = "enrollments"
