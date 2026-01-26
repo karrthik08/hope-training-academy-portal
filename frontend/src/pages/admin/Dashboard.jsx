@@ -1,133 +1,214 @@
 import React, { useEffect, useState } from 'react'
-import {
-  getAllTrainings, approveTraining,
-  getRosterReport, getCompletionReport, getAuditLogs,
-} from '../../api/client'
-
-const statusBadge = (status) => {
-  const m = {
-    draft:     'bg-yellow-100 text-yellow-700',
-    approved:  'bg-blue-100 text-blue-700',
-    published: 'bg-green-100 text-green-700',
-    archived:  'bg-gray-100 text-gray-500',
-  }
-  return m[status] || 'bg-gray-100 text-gray-600'
-}
+import { getAllTrainings, approveTraining, publishTraining, getAuditLogs, getCompletionReport } from '../../api/client'
 
 export default function AdminDashboard() {
-  const [trainings, setTrainings]           = useState([])
-  const [auditLogs, setAuditLogs]           = useState([])
-  const [tab, setTab]                       = useState('trainings')
-  const [loading, setLoading]               = useState(true)
-  const [reportData, setReportData]         = useState(null)
-  const [reportType, setReportType]         = useState('')
-  const [selectedTrainingId, setSelectedTrainingId] = useState('')
-  const [msg, setMsg]                       = useState('')
-
-  const load = async () => {
-    const [t, a] = await Promise.all([getAllTrainings(), getAuditLogs()])
-    setTrainings(t)
-    setAuditLogs(a)
-    setLoading(false)
-  }
+  const [trainings, setTrainings]         = useState([])
+  const [logs, setLogs]                   = useState([])
+  const [tab, setTab]                     = useState('approvals')
+  const [loading, setLoading]             = useState(true)
+  const [reportTrainingId, setReportTrainingId] = useState('')
+  const [reportData, setReportData]       = useState([])
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportError, setReportError]     = useState('')
 
   useEffect(() => { load() }, [])
 
-  const handleApprove = async (id) => {
+  const load = async () => {
+    setLoading(true)
     try {
-      await approveTraining(id)
-      setMsg('Training approved successfully')
-      load()
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Failed')
-    }
+      const [t, l] = await Promise.all([getAllTrainings(), getAuditLogs()])
+      setTrainings(t)
+      setLogs(l)
+    } catch(e) { console.error(e) }
+    finally { setLoading(false) }
   }
 
-  const handleReport = async (type) => {
-    if (!selectedTrainingId) return alert('Select a training first')
+  const approve = async (id) => { try { await approveTraining(id); await load() } catch(e) { alert(e.response?.data?.detail) } }
+  const publish = async (id) => { try { await publishTraining(id); await load() } catch(e) { alert(e.response?.data?.detail) } }
+
+  const badge = (s) => ({
+    draft:     'bg-yellow-100 text-yellow-700',
+    approved:  'bg-blue-100 text-blue-700',
+    published: 'bg-green-100 text-green-700',
+  }[s] || 'bg-gray-100 text-gray-600')
+
+  const loadReport = async () => {
+    if (!reportTrainingId) return
+    setReportLoading(true)
+    setReportError('')
+    setReportData([])
     try {
-      const data = type === 'roster'
-        ? await getRosterReport(selectedTrainingId)
-        : await getCompletionReport(selectedTrainingId)
+      const data = await getCompletionReport(reportTrainingId)
       setReportData(data)
-      setReportType(type)
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Report failed')
+      if (data.length === 0) setReportError('No completions found for this training.')
+    } catch(e) {
+      setReportError('Failed to load report.')
+    } finally {
+      setReportLoading(false)
     }
   }
 
-  const downloadJson = () => {
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href     = url
-    a.download = `${reportType}-report.json`
+  const exportCSV = () => {
+    if (!reportData.length) return
+    const training = trainings.find(t => t.id === reportTrainingId)
+    const headers = ['Participant Name', 'Certificate ID', 'Completed At', 'Verification Code']
+    const rows = reportData.map(r => [
+      r.participant_name || r.user_id || '—',
+      r.certificate_id || '—',
+      r.completed_at ? new Date(r.completed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—',
+      r.verification_code || '—',
+    ])
+    const csv = [headers, ...rows].map(row => row.map(v => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `completions-${training?.title || reportTrainingId}-${new Date().toISOString().slice(0,10)}.csv`
     a.click()
+    URL.revokeObjectURL(url)
   }
 
-  if (loading) return <div className="text-center py-12 text-gray-400">Loading…</div>
+  const exportPDF = () => {
+    if (!reportData.length) return
+    const training = trainings.find(t => t.id === reportTrainingId)
+    const printWindow = window.open('', '_blank')
+    const rows = reportData.map(r => `
+      <tr>
+        <td>${r.participant_name || r.user_id || '—'}</td>
+        <td>${r.certificate_id || '—'}</td>
+        <td>${r.completed_at ? new Date(r.completed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</td>
+        <td style="font-family:monospace;font-size:11px">${r.verification_code || '—'}</td>
+      </tr>`).join('')
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Completions Report</title>
+        <style>
+          body { font-family: Georgia, serif; padding: 40px; color: #111; }
+          .header { text-align: center; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { font-size: 22px; color: #2563eb; margin: 0 0 4px; }
+          .header p { font-size: 13px; color: #666; margin: 0; }
+          .meta { display: flex; justify-content: space-between; font-size: 12px; color: #555; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          thead { background: #eff6ff; }
+          th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb; border-bottom: 2px solid #bfdbfe; }
+          td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; }
+          tr:nth-child(even) td { background: #f9fafb; }
+          .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #aaa; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🎓 HOPE Training Academy</h1>
+          <p>Completions Report — ${training?.title || 'Training'}</p>
+        </div>
+        <div class="meta">
+          <span>Category: ${training?.category || '—'}</span>
+          <span>Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span>Total Completions: ${reportData.length}</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Participant Name</th>
+              <th>Certificate ID</th>
+              <th>Completed At</th>
+              <th>Verification Code</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="footer">HOPE Training Academy — Confidential Report</div>
+        <script>window.onload = () => { window.print(); }<\/script>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
+  if (loading) return <div className="text-center py-12 text-gray-400">Loading...</div>
+
+  const pending = trainings.filter(t => t.status === 'draft' || t.status === 'approved')
+  const published = trainings.filter(t => t.status === 'published')
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">Admin Dashboard</h1>
-      <p className="text-gray-500 mb-6">Manage trainings, reports, and audit logs</p>
+      <h1 className="text-2xl font-bold mb-2">Admin Dashboard</h1>
 
-      {msg && (
-        <div className="bg-green-50 text-green-800 p-3 rounded mb-4 text-sm flex justify-between">
-          {msg}
-          <button onClick={() => setMsg('')}>✕</button>
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {[
+          ['Pending',   trainings.filter(t => t.status === 'draft').length,     'text-yellow-600'],
+          ['Approved',  trainings.filter(t => t.status === 'approved').length,  'text-blue-600'],
+          ['Published', trainings.filter(t => t.status === 'published').length, 'text-green-600'],
+        ].map(([l, v, c]) => (
+          <div key={l} className="bg-white rounded-lg shadow p-4 text-center">
+            <div className={`text-3xl font-bold ${c}`}>{v}</div>
+            <div className="text-xs text-gray-500 mt-1">{l}</div>
+          </div>
+        ))}
+      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        {['trainings', 'reports', 'audit'].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded font-medium text-sm capitalize ${
-              tab === t ? 'bg-brand-600 text-white' : 'bg-white border text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            {t === 'audit' ? 'Audit Log' : t === 'reports' ? 'Reports' : 'Trainings'}
+      <div className="flex gap-2 mb-4">
+        {[['approvals','Approvals'],['all','All Trainings'],['reports','Reports'],['logs','Audit Log']].map(([k, v]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`px-4 py-2 rounded text-sm font-medium ${tab === k ? 'bg-blue-600 text-white' : 'bg-white border text-gray-600'}`}>
+            {v}
           </button>
         ))}
       </div>
 
-      {/* Trainings Tab */}
-      {tab === 'trainings' && (
+      {/* APPROVALS */}
+      {tab === 'approvals' && (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          {pending.length === 0
+            ? <p className="text-center py-12 text-gray-400">Nothing pending.</p>
+            : <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Title</th>
+                    <th className="px-4 py-3 text-left">Category</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {pending.map(t => (
+                    <tr key={t.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">{t.title}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{t.category || '—'}</td>
+                      <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${badge(t.status)}`}>{t.status}</span></td>
+                      <td className="px-4 py-3">
+                        {t.status === 'draft'    && <button onClick={() => approve(t.id)} className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700">Approve</button>}
+                        {t.status === 'approved' && <button onClick={() => publish(t.id)} className="bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700">Publish</button>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+          }
+        </div>
+      )}
+
+      {/* ALL TRAININGS */}
+      {tab === 'all' && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
-                <th className="text-left px-4 py-3">Title</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-left px-4 py-3">Created</th>
-                <th className="px-4 py-3">Actions</th>
+                <th className="px-4 py-3 text-left">Title</th>
+                <th className="px-4 py-3 text-left">Category</th>
+                <th className="px-4 py-3 text-left">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {trainings.map((t) => (
-                <tr key={t.id}>
+              {trainings.map(t => (
+                <tr key={t.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">{t.title}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(t.status)}`}>
-                      {t.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {new Date(t.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {t.status === 'draft' && (
-                      <button
-                        onClick={() => handleApprove(t.id)}
-                        className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                      >
-                        Approve
-                      </button>
-                    )}
-                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{t.category || '—'}</td>
+                  <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${badge(t.status)}`}>{t.status}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -135,88 +216,118 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Reports Tab */}
+      {/* REPORTS */}
       {tab === 'reports' && (
         <div>
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="font-semibold mb-4">Generate Report</h2>
-            <div className="flex flex-wrap gap-3 items-end">
-              <div>
-                <label className="block text-sm font-medium mb-1">Select Training</label>
+          {/* Training selector */}
+          <div className="bg-white rounded-lg shadow p-5 mb-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Completions Report</h2>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">Select Training</label>
                 <select
-                  className="border rounded px-3 py-2 text-sm"
-                  value={selectedTrainingId}
-                  onChange={(e) => setSelectedTrainingId(e.target.value)}
+                  className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={reportTrainingId}
+                  onChange={e => { setReportTrainingId(e.target.value); setReportData([]); setReportError('') }}
                 >
-                  <option value="">Choose a training…</option>
-                  {trainings.map((t) => (
-                    <option key={t.id} value={t.id}>{t.title}</option>
+                  <option value="">— Choose a training —</option>
+                  {trainings.map(t => (
+                    <option key={t.id} value={t.id}>{t.title} ({t.status})</option>
                   ))}
                 </select>
               </div>
               <button
-                onClick={() => handleReport('roster')}
-                className="bg-brand-600 text-white px-4 py-2 rounded text-sm hover:bg-brand-700"
+                onClick={loadReport}
+                disabled={!reportTrainingId || reportLoading}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-40"
               >
-                Roster Report
-              </button>
-              <button
-                onClick={() => handleReport('completion')}
-                className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700"
-              >
-                Completion Report
+                {reportLoading ? 'Loading…' : 'Load Report'}
               </button>
             </div>
           </div>
 
-          {reportData && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold capitalize">
-                  {reportType} Report ({reportData.length} records)
-                </h3>
-                <button onClick={downloadJson} className="text-sm text-brand-600 hover:underline">
-                  ⬇ Download JSON
-                </button>
+          {/* Results */}
+          {reportError && <p className="text-center py-6 text-gray-400">{reportError}</p>}
+
+          {reportData.length > 0 && (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              {/* Header row with export buttons */}
+              <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-50">
+                <span className="text-sm font-medium text-gray-700">
+                  {reportData.length} completion{reportData.length !== 1 ? 's' : ''} —{' '}
+                  <span className="text-gray-400 font-normal">{trainings.find(t => t.id === reportTrainingId)?.title}</span>
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={exportCSV}
+                    className="flex items-center gap-1 bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 font-medium"
+                  >
+                    ⬇ Export CSV
+                  </button>
+                  <button
+                    onClick={exportPDF}
+                    className="flex items-center gap-1 bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700 font-medium"
+                  >
+                    🖨 Export PDF
+                  </button>
+                </div>
               </div>
-              <pre className="bg-gray-50 p-4 rounded text-xs overflow-auto max-h-80">
-                {JSON.stringify(reportData, null, 2)}
-              </pre>
+
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Participant</th>
+                    <th className="px-4 py-3 text-left">Certificate ID</th>
+                    <th className="px-4 py-3 text-left">Completed</th>
+                    <th className="px-4 py-3 text-left">Verification Code</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {reportData.map((r, i) => (
+                    <tr key={r.id || i} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        {r.participant_name || r.user_id || '—'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-blue-700 font-semibold">
+                        {r.certificate_id || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">
+                        {r.completed_at ? new Date(r.completed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-400">
+                        {r.verification_code?.slice(0, 16)}…
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       )}
 
-      {/* Audit Log Tab */}
-      {tab === 'audit' && (
+      {/* AUDIT LOG */}
+      {tab === 'logs' && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
-                <th className="text-left px-4 py-3">Action</th>
-                <th className="text-left px-4 py-3">Entity</th>
-                <th className="text-left px-4 py-3">Actor</th>
-                <th className="text-left px-4 py-3">Time</th>
+                <th className="px-4 py-3 text-left">Action</th>
+                <th className="px-4 py-3 text-left">Entity</th>
+                <th className="px-4 py-3 text-left">Time</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {auditLogs.map((log) => (
-                <tr key={log.id}>
-                  <td className="px-4 py-3 font-mono text-xs font-medium text-blue-600">
-                    {log.action}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-600">
-                    {log.entity_type}{' '}
-                    <span className="font-mono text-gray-400">{log.entity_id.slice(0, 8)}…</span>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                    {log.actor_user_id.slice(0, 8)}…
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-400">
-                    {new Date(log.created_at).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
+              {logs.length === 0
+                ? <tr><td colSpan={3} className="text-center py-8 text-gray-400">No logs yet.</td></tr>
+                : logs.map(l => (
+                  <tr key={l.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium capitalize">{l.action}</td>
+                    <td className="px-4 py-3 text-gray-500">{l.entity_type}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{new Date(l.created_at).toLocaleString()}</td>
+                  </tr>
+                ))
+              }
             </tbody>
           </table>
         </div>
