@@ -5,7 +5,7 @@ from typing import List
 import uuid
 from app.db.session import get_db
 from app.models.user import User
-from app.models.training import Enrollment, Completion, AuditLog, EnrollmentStatus
+from app.models.training import Enrollment, Completion, AuditLog, EnrollmentStatus, Training
 from app.schemas.training import AuditLogOut
 from app.api.v1.deps import require_roles
 
@@ -27,15 +27,22 @@ async def completion_report(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles("Admin")),
 ):
-    enroll_result = await db.execute(
-        select(Enrollment).where(Enrollment.training_id == training_id, Enrollment.enrollment_status == EnrollmentStatus.completed)
+    result = await db.execute(
+        select(Completion, User.full_name)
+        .join(Enrollment, Enrollment.id == Completion.enrollment_id)
+        .join(User, User.id == Enrollment.user_id)
+        .where(Enrollment.training_id == training_id)
     )
-    enrollments = enroll_result.scalars().all()
+    rows = result.all()
     data = []
-    for e in enrollments:
-        comp_result = await db.execute(select(Completion).where(Completion.enrollment_id == e.id))
-        comp = comp_result.scalar_one_or_none()
-        data.append({"user_id": str(e.user_id), "certificate_id": comp.certificate_id if comp else None, "completed_at": comp.completed_at.isoformat() if comp else None})
+    for comp, full_name in rows:
+        data.append({
+            "id": str(comp.id),
+            "participant_name": full_name,
+            "certificate_id": comp.certificate_id,
+            "verification_code": comp.verification_code,
+            "completed_at": comp.completed_at.isoformat() if comp.completed_at else None,
+        })
     return data
 
 @router.get("/audit-logs", response_model=List[AuditLogOut])
