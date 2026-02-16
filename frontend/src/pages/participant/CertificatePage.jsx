@@ -62,7 +62,7 @@ export default function CertificatePage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xl">🎓</span>
+            <span className="text-xl"></span>
             <span className="text-blue-700 font-bold tracking-widest text-xs uppercase">
               HOPE Training Academy
             </span>

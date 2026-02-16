@@ -102,7 +102,7 @@ export default function AdminDashboard() {
       </head>
       <body>
         <div class="header">
-          <h1>🎓 HOPE Training Academy</h1>
+          <h1>HOPE Training Academy</h1>
           <p>Completions Report — ${training?.title || 'Training'}</p>
         </div>
         <div class="meta">
