@@ -56,7 +56,7 @@ export default function ResetPassword() {
       <div className="bg-white rounded-xl shadow p-8 w-full max-w-md">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-2xl"></span>
-          <span className="font-bold text-blue-700 text-sm tracking-wide uppercase">HOPE Training Portal</span>
+          <span className="font-bold text-blue-700 text-sm tracking-wide uppercase">HOPE Training Academy Portal</span>
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-1">Set new password</h2>
         <p className="text-gray-500 text-sm mb-6">Choose a new password for your account.</p>

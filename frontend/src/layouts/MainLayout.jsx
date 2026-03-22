@@ -25,7 +25,7 @@ export default function MainLayout() {
       <nav className="bg-brand-700 text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="text-xl font-bold tracking-tight">
-            HOPE Training Portal
+            HOPE Training Academy Portal
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link to="/" className="hover:underline">Trainings</Link>

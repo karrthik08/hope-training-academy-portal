@@ -21,6 +21,8 @@ export default function ParticipantDashboard() {
   const [browseList, setBrowseList]   = useState([])
   const [tab, setTab]                 = useState('mine')
   const [loading, setLoading]         = useState(true)
+  const [search, setSearch]           = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('All')
 
   useEffect(() => { load() }, [])
 
@@ -51,6 +53,19 @@ export default function ParticipantDashboard() {
   if (loading) return <div className="text-center py-12 text-gray-400">Loading...</div>
 
   const firstName = user?.full_name?.split(' ')[0] || 'Participant'
+
+  // Get unique categories for filter
+  const categories = ['All', ...new Set(browseList.map(t => t.category).filter(Boolean))]
+
+  // Filter browse list by search + category
+  const filteredList = browseList.filter(t => {
+    const matchesSearch = search.trim() === '' ||
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      (t.category || '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.description || '').toLowerCase().includes(search.toLowerCase())
+    const matchesCategory = categoryFilter === 'All' || t.category === categoryFilter
+    return matchesSearch && matchesCategory
+  })
 
   return (
     <div>
@@ -115,23 +130,56 @@ export default function ParticipantDashboard() {
       )}
 
       {tab === 'browse' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {browseList.length === 0
-            ? <p className="col-span-3 text-center py-12 text-gray-400">No published trainings yet.</p>
-            : browseList.map(t => {
-                const enrolled = enrollments.some(e => e.training_id === t.id && e.enrollment_status === 'enrolled')
-                return (
-                  <div key={t.id} className="bg-white rounded-lg shadow p-5 flex flex-col">
-                    {t.category && <span className={`self-start px-2 py-1 rounded-full text-xs font-medium mb-3 ${CATEGORY_COLORS[t.category] || 'bg-gray-100 text-gray-600'}`}>{t.category}</span>}
-                    <h3 className="font-semibold text-gray-900 mb-2">{t.title}</h3>
-                    <p className="text-sm text-gray-500 mb-4 flex-1">{t.description || 'No description.'}</p>
-                    {enrolled
-                      ? <span className="text-green-700 text-sm font-medium">✓ Enrolled</span>
-                      : <button onClick={() => handleEnroll(t.id)} className="w-full bg-blue-600 text-white text-sm py-2 rounded hover:bg-blue-700">Enroll Now</button>}
-                  </div>
-                )
-              })
-          }
+        <div>
+          {/* Search + Filter bar */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search trainings by title, category, or description..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+            </div>
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          {search && (
+            <p className="text-xs text-gray-400 mb-3">
+              {filteredList.length} result{filteredList.length !== 1 ? 's' : ''} for "{search}"
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredList.length === 0
+              ? <div className="col-span-3 text-center py-12">
+                  <p className="text-gray-400 mb-2">No trainings found{search ? ` for "${search}"` : ''}.</p>
+                  {search && <button onClick={() => { setSearch(''); setCategoryFilter('All') }} className="text-blue-600 text-sm hover:underline">Clear search</button>}
+                </div>
+              : filteredList.map(t => {
+                  const enrolled = enrollments.some(e => e.training_id === t.id && e.enrollment_status === 'enrolled')
+                  return (
+                    <div key={t.id} className="bg-white rounded-lg shadow p-5 flex flex-col">
+                      {t.category && <span className={`self-start px-2 py-1 rounded-full text-xs font-medium mb-3 ${CATEGORY_COLORS[t.category] || 'bg-gray-100 text-gray-600'}`}>{t.category}</span>}
+                      <h3 className="font-semibold text-gray-900 mb-2">{t.title}</h3>
+                      <p className="text-sm text-gray-500 mb-4 flex-1">{t.description || 'No description.'}</p>
+                      {enrolled
+                        ? <span className="text-green-700 text-sm font-medium">✓ Enrolled</span>
+                        : <button onClick={() => handleEnroll(t.id)} className="w-full bg-blue-600 text-white text-sm py-2 rounded hover:bg-blue-700">Enroll Now</button>}
+                    </div>
+                  )
+                })
+            }
+          </div>
         </div>
       )}
     </div>

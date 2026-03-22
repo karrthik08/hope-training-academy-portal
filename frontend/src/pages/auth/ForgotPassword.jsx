@@ -28,7 +28,7 @@ export default function ForgotPassword() {
   if (sent) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-xl shadow p-8 w-full max-w-md text-center">
-        <div className="text-4xl mb-4">📬</div>
+        <div className="text-4xl mb-4"></div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Check your email</h2>
         <p className="text-gray-500 text-sm mb-4">
           If <span className="font-medium text-gray-700">{email}</span> is registered,
@@ -55,7 +55,7 @@ export default function ForgotPassword() {
       <div className="bg-white rounded-xl shadow p-8 w-full max-w-md">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-2xl"></span>
-          <span className="font-bold text-blue-700 text-sm tracking-wide uppercase">HOPE Training Portal</span>
+          <span className="font-bold text-blue-700 text-sm tracking-wide uppercase">HOPE Training Academy Portal</span>
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-1">Reset your password</h2>
         <p className="text-gray-500 text-sm mb-6">Enter your email and we'll send you a reset link.</p>
