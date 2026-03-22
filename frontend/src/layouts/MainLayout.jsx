@@ -22,27 +22,52 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <nav className="bg-brand-700 text-white shadow-md">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold tracking-tight">
-            HOPE Training Academy Portal
+
+      <div style={{ backgroundColor: '#CC0000' }} className="text-white text-xs py-1 text-center">
+        1.855.9.OOHHOPE (1.855.966.4467) &nbsp;|&nbsp; pw@organizationofhope.org &nbsp;|&nbsp;
+        <a href="https://www.organizationofhope.org" target="_blank" rel="noopener noreferrer"
+          className="underline hover:text-yellow-200 ml-1">
+          www.OrganizationofHope.org
+        </a>
+      </div>
+
+      <nav style={{ backgroundColor: '#003087' }} className="text-white shadow-md">
+        <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
+
+          {/* Logo + Title */}
+          <Link to="/" className="flex items-center gap-3">
+            <img
+              src="/Cobranding.png"
+              alt="Organization of Hope + HOPEYA Logos"
+              className="h-12 w-auto"
+              style={{ filter: 'brightness(0) invert(1)' }}
+            />
+            <div>
+              <div className="text-lg font-bold leading-tight">HOPE Training Academy Portal</div>
+              <div className="text-xs" style={{ color: '#FFC72C' }}>
+                Organization of Hope — Changing Minds and Bridging Lives
+              </div>
+            </div>
           </Link>
+
+          {/* Nav links */}
           <div className="flex items-center gap-4 text-sm">
             <Link to="/" className="hover:underline">Trainings</Link>
             {dash && (
               <Link to={dash.to} className="hover:underline">{dash.label}</Link>
             )}
             {user && (
-              <Link to="/profile" className="hover:underline text-blue-200">
+              <Link to="/profile" className="hover:underline" style={{ color: '#FFC72C' }}>
                 My Profile
               </Link>
             )}
             {user ? (
               <>
-                <span className="text-blue-200">Hi, {user.full_name.split(' ')[0]}</span>
+                <span style={{ color: '#FFC72C' }}>Hi, {user.full_name.split(' ')[0]}</span>
                 <button
                   onClick={handleLogout}
-                  className="bg-white text-brand-700 px-3 py-1 rounded font-medium hover:bg-blue-50"
+                  className="px-3 py-1 rounded font-medium"
+                  style={{ backgroundColor: '#CC0000', color: 'white' }}
                 >
                   Logout
                 </button>
@@ -52,7 +77,8 @@ export default function MainLayout() {
                 <Link to="/login" className="hover:underline">Login</Link>
                 <Link
                   to="/register"
-                  className="bg-white text-brand-700 px-3 py-1 rounded font-medium hover:bg-blue-50"
+                  className="px-3 py-1 rounded font-medium"
+                  style={{ backgroundColor: '#CC0000', color: 'white' }}
                 >
                   Register
                 </Link>
@@ -66,8 +92,34 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      <footer className="bg-gray-100 border-t text-center text-sm text-gray-500 py-4">
-        © {new Date().getFullYear()} HOPE Training Academy
+      <footer style={{ backgroundColor: '#003087' }} className="text-white text-sm py-6">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/Cobranding.png"
+                alt="OOH Logo"
+                className="h-10 w-auto"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
+              <div>
+                <div className="font-bold text-sm">HOPE Training Academy Portal</div>
+                <div className="text-xs" style={{ color: '#FFC72C' }}>
+                  Bridging Hope, Inc. dba Organization of Hope
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-center" style={{ color: '#93C5FD' }}>
+              <div>📞 1.855.966.4467 &nbsp;|&nbsp; ✉️ pw@organizationofhope.org</div>
+              <div className="mt-1">
+                218 E Lexington St, Suite 600, Baltimore, MD 21202
+              </div>
+            </div>
+            <div className="text-xs" style={{ color: '#93C5FD' }}>
+              © {new Date().getFullYear()} Organization of Hope. All rights reserved.
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   )
