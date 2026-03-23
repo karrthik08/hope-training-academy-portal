@@ -8,6 +8,8 @@ class TrainingCreate(BaseModel):
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     category: Optional[str] = None
+    video_url: Optional[str] = None
+    flyer_url: Optional[str] = None
 
 class TrainingUpdate(BaseModel):
     title: Optional[str] = None
@@ -15,6 +17,8 @@ class TrainingUpdate(BaseModel):
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     category: Optional[str] = None
+    video_url: Optional[str] = None
+    flyer_url: Optional[str] = None
 
 class TrainingOut(BaseModel):
     id: UUID4
@@ -26,8 +30,10 @@ class TrainingOut(BaseModel):
     end_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
-    model_config = {"from_attributes": True}
     category: Optional[str] = None
+    video_url: Optional[str] = None
+    flyer_url: Optional[str] = None
+    model_config = {"from_attributes": True}
 
 class EnrollmentOut(BaseModel):
     id: UUID4

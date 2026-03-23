@@ -5,19 +5,15 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 import os, sys
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
 from app.core.config import settings
 from app.db.session import Base
 from app.models import user, training  # noqa
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
-
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
 target_metadata = Base.metadata
 
 def run_migrations_offline():
@@ -48,29 +44,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-```
-
----
-
-## FILE 30 — `backend/alembic/script.py.mako`
-```
-"""${message}
-
-Revision ID: ${up_revision}
-Revises: ${down_revision | comma,n}
-Create Date: ${create_date}
-"""
-from alembic import op
-import sqlalchemy as sa
-${imports if imports else ""}
-
-revision = ${repr(up_revision)}
-down_revision = ${repr(down_revision)}
-branch_labels = ${repr(branch_labels)}
-depends_on = ${repr(depends_on)}
-
-def upgrade() -> None:
-    ${upgrades if upgrades else "pass"}
-
-def downgrade() -> None:
-    ${downgrades if downgrades else "pass"}

@@ -34,6 +34,8 @@ class Training(Base):
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="training")
     category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    video_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    flyer_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
 class Enrollment(Base):
     __tablename__ = "enrollments"
