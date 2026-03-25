@@ -5,9 +5,8 @@ services:
     env: docker
     plan: free
     region: oregon
-    databases:
-      - name: hope_portal
-        user: hope_user
+    databaseName: hope_portal
+    databaseUser: hope_user
 
   # Backend API (FastAPI)
   - type: web
