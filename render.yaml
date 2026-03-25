@@ -1,14 +1,13 @@
-services:
-  # PostgreSQL Database
-  - type: pserv
-    name: hope-portal-db
+databases:
+  - name: hope-portal-db
     plan: free
 
-  # Backend API (FastAPI)
+services:
   - type: web
     name: hope-portal-backend
     runtime: python
     plan: free
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: bash start.sh
     envVars:
@@ -21,19 +20,21 @@ services:
       - key: ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 60
+        value: "30"
+      - key: CORS_ORIGINS
+        value: http://localhost:5173
 
-  # Frontend (React/Vite Static Site)
   - type: web
     name: hope-portal-frontend
     runtime: static
     plan: free
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://hope-portal-backend.onrender.com
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-    envVars:
-      - key: NODE_VERSION
-        value: 18.17.0
