@@ -2,11 +2,8 @@ services:
   # PostgreSQL Database
   - type: pserv
     name: hope-portal-db
-    env: docker
     plan: free
     region: oregon
-    databaseName: hope_portal
-    databaseUser: hope_user
 
   # Backend API (FastAPI)
   - type: web
