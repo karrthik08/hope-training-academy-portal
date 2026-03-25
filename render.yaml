@@ -6,7 +6,6 @@ services:
   - type: web
     name: hope-portal-backend
     runtime: python
-    plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: bash start.sh
@@ -27,7 +26,6 @@ services:
   - type: web
     name: hope-portal-frontend
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
