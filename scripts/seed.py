@@ -22,8 +22,8 @@ async def seed():
 
         users_data = [
             ("Admin User", "admin@hope.local", "Admin1234!", "Admin"),
-            ("Jane Instructor", "instructor@hope.local", "Instructor1!", "Instructor"),
-            ("Bob Participant", "participant@hope.local", "Participant1!", "Participant"),
+            ("Instructor", "instructor@hope.local", "Instructor1!", "Instructor"),
+            ("Participant", "participant@hope.local", "Participant1!", "Participant"),
         ]
         created_users = {}
         for full_name, email, pw, role_name in users_data:
@@ -43,7 +43,7 @@ async def seed():
             db.add(t)
 
         await db.commit()
-        print("✅ Seed complete!")
+        print(" Seed complete!")
         print("  admin@hope.local       / Admin1234!")
         print("  instructor@hope.local  / Instructor1!")
         print("  participant@hope.local / Participant1!")

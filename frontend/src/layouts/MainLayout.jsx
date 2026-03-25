@@ -23,34 +23,85 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen flex flex-col">
 
-      <div style={{ backgroundColor: '#CC0000' }} className="text-white text-xs py-1 text-center">
-        1.855.9.OOHHOPE (1.855.966.4467) &nbsp;|&nbsp; pw@organizationofhope.org &nbsp;|&nbsp;
-        <a href="https://www.organizationofhope.org" target="_blank" rel="noopener noreferrer"
-          className="underline hover:text-yellow-200 ml-1">
-          www.OrganizationofHope.org
-        </a>
+      {/* Top red bar */}
+      <div style={{ backgroundColor: '#CC0000' }} className="text-white text-xs py-1.5">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <span>✉️ Info@organizationofhope.org</span>
+            <span className="opacity-50">|</span>
+            <span>📞 1.855.966.4467 / 443.449.6018</span>
+          </div>
+          <div>
+            <a href="https://www.organizationofhope.org" target="_blank" rel="noopener noreferrer"
+              className="underline hover:text-yellow-200">
+              www.OrganizationofHope.org
+            </a>
+          </div>
+        </div>
       </div>
 
-      <nav style={{ backgroundColor: '#003087' }} className="text-white shadow-md">
-        <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
+      {/* White address bar with logos centered */}
+      <div style={{ backgroundColor: '#ffffff', borderBottom: '2px solid #CC0000' }} className="py-3 hidden md:block">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between gap-2">
 
-          {/* Logo + Title */}
+            <div className="flex items-start gap-1.5 text-xs text-gray-700">
+              <span style={{ color: '#CC0000' }}>✉️</span>
+              <div>
+                <div className="font-bold">PO Box 1466,</div>
+                <div>Temple Hills, Maryland</div>
+                <div>MD 20575</div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-1.5 text-xs text-gray-700">
+              <span style={{ color: '#CC0000' }}>📍</span>
+              <div>
+                <div className="font-bold">3605 Springdale Avenue,</div>
+                <div>Baltimore,</div>
+                <div>MD 21216</div>
+              </div>
+            </div>
+
+            {/* Center logos — full color, no invert */}
+            <div className="flex items-center justify-center px-4">
+              <img src="/Cobranding.png" alt="OOH + HOPEYA Logos" className="h-16 w-auto" />
+            </div>
+
+            <div className="flex items-start gap-1.5 text-xs text-gray-700">
+              <span style={{ color: '#CC0000' }}>📍</span>
+              <div>
+                <div className="font-bold">1629 K. Street NW,</div>
+                <div>Suite 300, Washington,</div>
+                <div>DC 20006</div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-1.5 text-xs text-gray-700">
+              <span style={{ color: '#CC0000' }}>📍</span>
+              <div>
+                <div className="font-bold">909 St David Street,</div>
+                <div>Tarboro,</div>
+                <div>NC 27886</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* Blue navbar */}
+      <nav style={{ backgroundColor: '#003087' }} className="text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <img
-              src="/Cobranding.png"
-              alt="Organization of Hope + HOPEYA Logos"
-              className="h-12 w-auto"
-              style={{ filter: 'brightness(0) invert(1)' }}
-            />
             <div>
               <div className="text-lg font-bold leading-tight">HOPE Training Academy Portal</div>
               <div className="text-xs" style={{ color: '#FFC72C' }}>
-                Organization of Hope — Changing Minds and Bridging Lives
+                Bridging Hope, Inc. dba Organization of Hope
               </div>
             </div>
           </Link>
 
-          {/* Nav links */}
           <div className="flex items-center gap-4 text-sm">
             <Link to="/" className="hover:underline">Trainings</Link>
             {dash && (
@@ -88,19 +139,20 @@ export default function MainLayout() {
         </div>
       </nav>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
         <Outlet />
       </main>
 
+      {/* Footer */}
       <footer style={{ backgroundColor: '#003087' }} className="text-white text-sm py-6">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
+              {/* Footer logos — full color on dark bg */}
               <img
                 src="/Cobranding.png"
                 alt="OOH Logo"
-                className="h-10 w-auto"
-                style={{ filter: 'brightness(0) invert(1)' }}
+                className="h-12 w-auto"
               />
               <div>
                 <div className="font-bold text-sm">HOPE Training Academy Portal</div>
@@ -110,10 +162,8 @@ export default function MainLayout() {
               </div>
             </div>
             <div className="text-xs text-center" style={{ color: '#93C5FD' }}>
-              <div>📞 1.855.966.4467 &nbsp;|&nbsp; ✉️ pw@organizationofhope.org</div>
-              <div className="mt-1">
-                218 E Lexington St, Suite 600, Baltimore, MD 21202
-              </div>
+              <div>📞 1.855.966.4467 &nbsp;|&nbsp; ✉️ Info@organizationofhope.org</div>
+              <div className="mt-1">218 E Lexington St, Suite 600, Baltimore, MD 21202</div>
             </div>
             <div className="text-xs" style={{ color: '#93C5FD' }}>
               © {new Date().getFullYear()} Organization of Hope. All rights reserved.

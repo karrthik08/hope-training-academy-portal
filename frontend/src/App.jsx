@@ -27,18 +27,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public standalone pages — no nav/layout */}
+        {/* Standalone pages — no nav/layout */}
         <Route path="/certificate/:enrollmentId" element={<CertificatePage />} />
         <Route path="/verify/:verificationCode" element={<VerifyCertificate />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Main app with nav */}
+        {/* All pages with full header/footer layout */}
         <Route path="/" element={<MainLayout />}>
           <Route index element={<PublicTrainingsPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
-
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
           <Route
             path="dashboard"
             element={
