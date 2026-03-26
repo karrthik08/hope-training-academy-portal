@@ -13,6 +13,8 @@ import AdminDashboard from './pages/admin/Dashboard'
 import CertificatePage from './pages/participant/CertificatePage'
 import VerifyCertificate from './pages/participant/VerifyCertificate'
 import ProfilePage from './pages/participant/ProfilePage'
+import ParticipantOnboarding from './pages/participant/OnboardingTracker'
+import AdminOnboarding from './pages/admin/OnboardingTracker'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { token, user } = useAuthStore()
@@ -68,6 +70,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <AdminDashboard />
+          <Route
+            path="onboarding"
+            element={
+              <ProtectedRoute allowedRoles={['Participant']}>
+                <ParticipantOnboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/onboarding"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <AdminOnboarding />
+              </ProtectedRoute>
+            }
+          />
               </ProtectedRoute>
             }
           />
