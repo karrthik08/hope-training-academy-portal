@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import api from '../../api/client'
 
 const REQUIRED_TRAININGS_TITLES = [
   "SSP Core Training Live Opening Session",
@@ -36,7 +37,7 @@ export default function AdminOnboardingTracker() {
   const [reviewNote, setReviewNote] = useState('')
   const [approving, setApproving]   = useState(false)
 
-  const token = localStorage.getItem('hope_access_token') || ''
+  
 
   useEffect(() => { loadAll() }, [])
 
@@ -46,7 +47,7 @@ export default function AdminOnboardingTracker() {
       const res = await fetch('/api/v1/onboarding/admin/all-progress', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      const data = await res.json()
+      const data = res.data
       setUsers(data)
     } catch(e) { console.error(e) }
     finally { setLoading(false) }
@@ -58,7 +59,7 @@ export default function AdminOnboardingTracker() {
       const res = await fetch(`/api/v1/onboarding/admin/user-progress/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      const data = await res.json()
+      const data = res.data
       setUserDetail(data)
       setReviewNote(data.submission?.reviewer_notes || '')
     } catch(e) { console.error(e) }

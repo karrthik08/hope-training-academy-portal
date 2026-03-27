@@ -13,8 +13,7 @@ import AdminDashboard from './pages/admin/Dashboard'
 import CertificatePage from './pages/participant/CertificatePage'
 import VerifyCertificate from './pages/participant/VerifyCertificate'
 import ProfilePage from './pages/participant/ProfilePage'
-import ParticipantOnboarding from './pages/participant/OnboardingTracker'
-import AdminOnboarding from './pages/admin/OnboardingTracker'
+import OnboardingTracker from './pages/participant/OnboardingTracker'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { token, user } = useAuthStore()
@@ -29,18 +28,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public standalone pages — no nav/layout */}
+        {/* Standalone pages — no nav/layout */}
         <Route path="/certificate/:enrollmentId" element={<CertificatePage />} />
         <Route path="/verify/:verificationCode" element={<VerifyCertificate />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Main app with nav */}
+        {/* All pages with full header/footer layout */}
         <Route path="/" element={<MainLayout />}>
           <Route index element={<PublicTrainingsPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
-
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+          
           <Route
             path="dashboard"
             element={
@@ -49,6 +48,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          
+          <Route
+            path="onboarding"
+            element={
+              <ProtectedRoute allowedRoles={['Participant']}>
+                <OnboardingTracker />
+              </ProtectedRoute>
+            }
+          />
+          
           <Route
             path="profile"
             element={
@@ -57,6 +66,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          
           <Route
             path="instructor"
             element={
@@ -65,27 +75,12 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          
           <Route
             path="admin"
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <AdminDashboard />
-          <Route
-            path="onboarding"
-            element={
-              <ProtectedRoute allowedRoles={['Participant']}>
-                <ParticipantOnboarding />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="admin/onboarding"
-            element={
-              <ProtectedRoute allowedRoles={['Admin']}>
-                <AdminOnboarding />
-              </ProtectedRoute>
-            }
-          />
               </ProtectedRoute>
             }
           />

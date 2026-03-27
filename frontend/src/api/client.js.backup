@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL + '/api/v1',
+  baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -84,22 +84,3 @@ export const getAuditLogs = () =>
 
 export const getCompletionByEnrollment = (enrollmentId) =>
   api.get(`/instructor/completions-by-enrollment/${enrollmentId}`).then(r => r.data)
-
-// Onboarding API functions
-export const getOnboardingTrainings = () =>
-  api.get('/onboarding/trainings').then((r) => r.data)
-
-export const getMyOnboardingProgress = () =>
-  api.get('/onboarding/my-progress').then((r) => r.data)
-
-export const updateOnboardingItem = (trainingId, proofLink, initials) =>
-  api.post('/onboarding/update-item', { training_id: trainingId, proof_link: proofLink, initials }).then((r) => r.data)
-
-export const submitOnboarding = () =>
-  api.post('/onboarding/submit').then((r) => r.data)
-
-export const getAllOnboardingProgress = () =>
-  api.get('/onboarding/admin/all-progress').then((r) => r.data)
-
-export const approveOnboarding = (userId) =>
-  api.post(`/onboarding/admin/approve/${userId}`).then((r) => r.data)

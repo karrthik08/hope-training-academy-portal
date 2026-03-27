@@ -1,0 +1,22 @@
+
+Add these imports at the top with other imports:
+import ParticipantOnboarding from './pages/participant/OnboardingTracker'
+import AdminOnboarding from './pages/admin/OnboardingTracker'
+
+Add these routes inside the MainLayout Route element:
+          <Route
+            path="onboarding"
+            element={
+              <ProtectedRoute allowedRoles={['Participant']}>
+                <ParticipantOnboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/onboarding"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <AdminOnboarding />
+              </ProtectedRoute>
+            }
+          />
