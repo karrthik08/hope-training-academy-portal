@@ -5,12 +5,11 @@ from app.db.session import get_db
 from datetime import datetime
 import uuid
 
-# No prefix - the routes define their full paths
 router = APIRouter(tags=["certificates"])
 
 @router.get("/enrollments/{enrollment_id}/certificate")
 async def get_certificate(
-    enrollment_id: str,
+    enrollment_id: uuid.UUID,  # Changed to UUID type
     db: AsyncSession = Depends(get_db)
 ):
     """Get certificate data for an enrollment"""
@@ -33,7 +32,7 @@ async def get_certificate(
             LEFT JOIN completions c ON e.id = c.enrollment_id
             WHERE e.id = :enrollment_id
         """),
-        {"enrollment_id": enrollment_id}
+        {"enrollment_id": str(enrollment_id)}  # Convert UUID to string for SQL
     )
     
     row = result.first()
