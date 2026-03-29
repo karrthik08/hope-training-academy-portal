@@ -118,7 +118,7 @@ export default function ParticipantDashboard() {
     setCompletingId(trainingId)
     const token = localStorage.getItem('hope_access_token') || ''
     try {
-      const res = await fetch(`/api/v1/enrollments/complete-by-video/${trainingId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/enrollments/complete-by-video/${trainingId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       })
