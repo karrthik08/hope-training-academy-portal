@@ -9,17 +9,22 @@ export default function CertificatePage() {
   useEffect(() => {
     if (!enrollmentId) return;
     const token = localStorage.getItem("hope_access_token") || "";
-    fetch(`/api/v1/enrollments/${enrollmentId}/certificate`, {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+    
+    fetch(`${API_BASE}/api/v1/enrollments/${enrollmentId}/certificate`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    .then(r => r.json())
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
     .then(d => setData(d))
     .catch(e => setError(e.message));
   }, [enrollmentId]);
 
   if (error) return (
     <div style={{ padding:"40px", color:"red", textAlign:"center" }}>
-      {error}
+      Error: {error}
       <br />
       <Link to="/dashboard" style={{ color:"#2563eb", marginTop:"12px", display:"inline-block" }}>
         ← Back to Dashboard
@@ -53,7 +58,6 @@ export default function CertificatePage() {
       padding:"30px 20px", display:"flex", flexDirection:"column",
       alignItems:"center", gap:"20px", background:"#f8fafc", minHeight:"100vh"
     }}>
-      {/* Buttons */}
       <div style={{ display:"flex", gap:"12px", alignSelf:"flex-start", marginLeft:"20px" }}>
         <Link to="/dashboard" style={{
           background:"#e5e7eb", color:"#374151", padding:"10px 20px",
@@ -69,14 +73,12 @@ export default function CertificatePage() {
         </button>
       </div>
 
-      {/* Certificate */}
       <div id="cert-container" style={{
         position:"relative", display:"inline-block",
         maxWidth:"1000px", width:"100%"
       }}>
         <img src={imgSrc} alt="Certificate" style={{ width:"100%", display:"block" }} />
 
-        {/* ── OOH OVERLAYS ── */}
         {template === "OOH" && <>
           <div style={{
             position:"absolute", top:"39%", left:"25%", right:"5%",
@@ -112,7 +114,6 @@ export default function CertificatePage() {
           </div>
         </>}
 
-        {/* ── PPW OVERLAYS ── */}
         {template === "PPW" && <>
           <div style={{
             position:"absolute", top:"39%", left:"15%", right:"15%",
@@ -142,7 +143,6 @@ export default function CertificatePage() {
           </div>
         </>}
 
-        {/* ── CORPORATE OVERLAYS ── */}
         {template === "CORPORATE" && <>
           <div style={{
             position:"absolute", top:"30%", left:"15%", right:"15%",
@@ -185,7 +185,6 @@ export default function CertificatePage() {
         </>}
       </div>
 
-      {/* Cert details below */}
       <div style={{
         maxWidth:"1000px", width:"100%", background:"white",
         borderRadius:"12px", padding:"20px 24px", boxShadow:"0 1px 4px rgba(0,0,0,0.08)"
