@@ -5,34 +5,55 @@ from typing import Optional
 class TrainingCreate(BaseModel):
     title: str
     description: Optional[str] = None
+    category: Optional[str] = None
+    target_audience: Optional[str] = None
+    delivery_type: str = "self-paced"
+    duration_hours: Optional[int] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
-    category: Optional[str] = None
     video_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    status: str = "draft"
 
 class TrainingUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    category: Optional[str] = None
+    target_audience: Optional[str] = None
+    delivery_type: Optional[str] = None
+    duration_hours: Optional[int] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
-    category: Optional[str] = None
     video_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    status: Optional[str] = None
 
 class TrainingOut(BaseModel):
     id: UUID4
     title: str
     description: Optional[str]
     status: str
+    category: Optional[str] = None
+    target_audience: Optional[str] = None
+    delivery_type: str
+    duration_hours: Optional[int] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    submitted_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    approved_by_id: Optional[UUID4] = None
     created_by: UUID4
-    start_at: Optional[datetime]
-    end_at: Optional[datetime]
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-    category: Optional[str] = None
     video_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    
     model_config = {"from_attributes": True}
 
 class EnrollmentOut(BaseModel):
@@ -43,6 +64,7 @@ class EnrollmentOut(BaseModel):
     enrolled_at: datetime
     canceled_at: Optional[datetime]
     participant_name: Optional[str] = None
+    
     model_config = {"from_attributes": True}
 
 class AttendanceCreate(BaseModel):
@@ -56,6 +78,7 @@ class CompletionOut(BaseModel):
     certificate_id: str
     certificate_url: Optional[str]
     verification_code: str
+    
     model_config = {"from_attributes": True}
 
 class AuditLogOut(BaseModel):
@@ -65,4 +88,5 @@ class AuditLogOut(BaseModel):
     entity_type: str
     entity_id: str
     created_at: datetime
+    
     model_config = {"from_attributes": True}
