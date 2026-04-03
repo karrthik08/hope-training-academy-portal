@@ -9,11 +9,14 @@ import ResetPassword from './pages/auth/ResetPassword'
 import PublicTrainingsPage from './pages/PublicTrainingsPage'
 import ParticipantDashboard from './pages/participant/Dashboard'
 import InstructorDashboard from './pages/instructor/Dashboard'
+import ManageContent from './pages/instructor/ManageContent'
 import AdminDashboard from './pages/admin/Dashboard'
+import CourseReview from './pages/admin/CourseReview'
 import CertificatePage from './pages/participant/CertificatePage'
 import VerifyCertificate from './pages/participant/VerifyCertificate'
 import ProfilePage from './pages/participant/ProfilePage'
 import OnboardingTracker from './pages/participant/OnboardingTracker'
+import CourseView from './pages/participant/CourseView'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { token, user } = useAuthStore()
@@ -39,6 +42,7 @@ export default function App() {
           <Route path="register" element={<RegisterPage />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
+
           
           <Route
             path="dashboard"
@@ -54,6 +58,15 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['Participant']}>
                 <OnboardingTracker />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="course/:enrollmentId"
+            element={
+              <ProtectedRoute allowedRoles={['Participant']}>
+                <CourseView />
               </ProtectedRoute>
             }
           />
@@ -74,13 +87,28 @@ export default function App() {
                 <InstructorDashboard />
               </ProtectedRoute>
             }
+          />         
+          <Route
+            path="instructor/manage-content/:trainingId"
+            element={
+              <ProtectedRoute allowedRoles={['Instructor', 'Admin']}>
+                <ManageContent />
+              </ProtectedRoute>
+            }
           />
-          
           <Route
             path="admin"
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/course-review"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <CourseReview />
               </ProtectedRoute>
             }
           />

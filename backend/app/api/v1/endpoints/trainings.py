@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
+from datetime import datetime
 import uuid
 from app.db.session import get_db
 from app.models.user import User
@@ -56,6 +57,29 @@ async def update_training(
     await db.refresh(training)
     return training
 
+@router.post("/{training_id}/submit", response_model=TrainingOut)
+async def submit_for_review(
+    training_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("Admin", "Instructor")),
+):
+    training = await db.get(Training, training_id)
+    
+    if not training:
+        raise HTTPException(status_code=404, detail="Training not found")
+    
+    if training.status != "draft":
+        raise HTTPException(status_code=400, detail="Only draft courses can be submitted for review")
+    
+    training.status = "submitted"
+    training.submitted_at = datetime.utcnow()
+    
+    await log_action(db, current_user.id, "submit", "Training", str(training.id))
+    await db.commit()
+    await db.refresh(training)
+    
+    return training
+
 @router.patch("/{training_id}/approve", response_model=TrainingOut)
 async def approve_training(
     training_id: uuid.UUID,
@@ -69,6 +93,29 @@ async def approve_training(
     await log_action(db, current_user.id, "approve", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
+    return training
+
+@router.post("/{training_id}/reject", response_model=TrainingOut)
+async def reject_training(
+    training_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("Admin")),
+):
+    training = await db.get(Training, training_id)
+    
+    if not training:
+        raise HTTPException(status_code=404, detail="Training not found")
+    
+    # Allow rejecting both submitted and approved courses
+    if training.status not in ["submitted", "approved"]:
+        raise HTTPException(status_code=400, detail="Only submitted or approved courses can be rejected")
+    
+    training.status = "draft"
+    
+    await log_action(db, current_user.id, "reject", "Training", str(training.id))
+    await db.commit()
+    await db.refresh(training)
+    
     return training
 
 @router.patch("/{training_id}/publish", response_model=TrainingOut)

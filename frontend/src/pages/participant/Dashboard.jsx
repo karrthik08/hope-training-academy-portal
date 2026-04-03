@@ -206,7 +206,12 @@ export default function ParticipantDashboard() {
                         <td className="px-4 py-3 text-xs text-gray-400">{new Date(e.enrolled_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3 flex gap-2">
                           {isEnrolled && (
-                            <button onClick={() => handleCancel(e.training_id)} className="text-red-500 text-xs hover:underline">Cancel</button>
+                            <>
+                              <Link to={`/course/${e.id}`} className="text-blue-600 text-xs font-medium hover:underline">
+                                📚 View Course →
+                              </Link>
+                              <button onClick={() => handleCancel(e.training_id)} className="text-red-500 text-xs hover:underline">Cancel</button>
+                            </>
                           )}
                           {isCompleted && (
                             <Link to={`/certificate/${e.id}`} className="text-green-600 text-xs font-medium hover:underline">

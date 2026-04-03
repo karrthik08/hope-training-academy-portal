@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { getAllTrainings, createTraining, updateTraining, getRoster, markAttendance, markCompletion } from '../../api/client'
+import { getAllTrainings, createTraining, updateTraining, submitTraining, getRoster, markAttendance, markCompletion } from '../../api/client'
+import { useNavigate } from 'react-router-dom'
 
 const CATEGORIES = [
   'Curriculum Development & Implementation',
@@ -12,7 +13,19 @@ const CATEGORIES = [
   'Life & Resilience Skills Training',
 ]
 
-const EMPTY_FORM = { title: '', description: '', category: '', video_url: '', flyer_url: '' }
+const EMPTY_FORM = { 
+  title: '', 
+  description: '', 
+  category: '', 
+  video_url: '', 
+  flyer_url: '',
+  target_audience: '',
+  delivery_type: 'self-paced',
+  duration_hours: '',
+  start_date: '',
+  end_date: '',
+  status: 'draft'
+}
 
 export default function InstructorDashboard() {
   const [trainings, setTrainings]         = useState([])
@@ -25,6 +38,7 @@ export default function InstructorDashboard() {
   const [loading, setLoading]             = useState(true)
   const [rosterLoading, setRosterLoading] = useState(false)
   const [saving, setSaving]               = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => { loadTrainings() }, [])
 
@@ -44,11 +58,17 @@ export default function InstructorDashboard() {
   const openEdit = (t) => {
     setEditTarget(t)
     setForm({
-      title:       t.title || '',
-      description: t.description || '',
-      category:    t.category || '',
-      video_url:   t.video_url || '',
-      flyer_url:   t.flyer_url || '',
+      title:            t.title || '',
+      description:      t.description || '',
+      category:         t.category || '',
+      video_url:        t.video_url || '',
+      flyer_url:        t.flyer_url || '',
+      target_audience:  t.target_audience || '',
+      delivery_type:    t.delivery_type || 'self-paced',
+      duration_hours:   t.duration_hours || '',
+      start_date:       t.start_date ? t.start_date.slice(0,16) : '',
+      end_date:         t.end_date ? t.end_date.slice(0,16) : '',
+      status:           t.status || 'draft',
     })
     setShowForm(true)
   }
@@ -63,10 +83,17 @@ export default function InstructorDashboard() {
     if (!form.title.trim()) return alert('Title required')
     setSaving(true)
     try {
+      const payload = {
+        ...form,
+        duration_hours: form.duration_hours ? parseInt(form.duration_hours) : null,
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
+      }
+      
       if (editTarget) {
-        await updateTraining(editTarget.id, form)
+        await updateTraining(editTarget.id, payload)
       } else {
-        await createTraining(form)
+        await createTraining(payload)
       }
       closeForm()
       await loadTrainings()
@@ -74,6 +101,17 @@ export default function InstructorDashboard() {
       alert(e.response?.data?.detail || 'Failed to save')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSubmitForReview = async (trainingId) => {
+    if (!confirm('Submit this course for admin review?')) return
+    try {
+      await submitTraining(trainingId)
+      await loadTrainings()
+      alert('Course submitted for review!')
+    } catch(e) {
+      alert(e.response?.data?.detail || 'Failed to submit')
     }
   }
 
@@ -100,6 +138,7 @@ export default function InstructorDashboard() {
 
   const badge = (s) => ({
     draft:     'bg-yellow-100 text-yellow-700',
+    submitted: 'bg-purple-100 text-purple-700',
     approved:  'bg-blue-100 text-blue-700',
     published: 'bg-green-100 text-green-700',
   }[s] || 'bg-gray-100 text-gray-600')
@@ -125,8 +164,9 @@ export default function InstructorDashboard() {
           <h2 className="text-lg font-semibold mb-4">
             {editTarget ? `Edit: ${editTarget.title}` : 'New Training'}
           </h2>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Title */}
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
               <input
                 className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -135,16 +175,20 @@ export default function InstructorDashboard() {
                 onChange={e => setForm({...form, title: e.target.value})}
               />
             </div>
-            <div>
+
+            {/* Description */}
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
                 className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={4}
+                rows={3}
                 placeholder="Describe what participants will learn..."
                 value={form.description}
                 onChange={e => setForm({...form, description: e.target.value})}
               />
             </div>
+
+            {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
               <select
@@ -156,10 +200,73 @@ export default function InstructorDashboard() {
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+
+            {/* Target Audience */}
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
+              <input
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., New employees, Managers"
+                value={form.target_audience}
+                onChange={e => setForm({...form, target_audience: e.target.value})}
+              />
+            </div>
+
+            {/* Delivery Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
+              <select
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                value={form.delivery_type}
+                onChange={e => setForm({...form, delivery_type: e.target.value})}
+              >
+                <option value="self-paced">Self-Paced</option>
+                <option value="live">Live/Scheduled</option>
+              </select>
+            </div>
+
+            {/* Duration */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (hours)</label>
+              <input
+                type="number"
+                min="1"
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., 4"
+                value={form.duration_hours}
+                onChange={e => setForm({...form, duration_hours: e.target.value})}
+              />
+            </div>
+
+            {/* Conditional: Start/End Dates for Live Courses */}
+            {form.delivery_type === 'live' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={form.start_date}
+                    onChange={e => setForm({...form, start_date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={form.end_date}
+                    onChange={e => setForm({...form, end_date: e.target.value})}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* YouTube Video URL */}
+            <div className={form.delivery_type === 'live' ? '' : 'md:col-span-2'}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 YouTube Video URL
-                <span className="text-gray-400 font-normal ml-1">(optional — embeds on training card)</span>
+                <span className="text-gray-400 font-normal ml-1">(optional)</span>
               </label>
               <input
                 className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -168,10 +275,12 @@ export default function InstructorDashboard() {
                 onChange={e => setForm({...form, video_url: e.target.value})}
               />
             </div>
-            <div>
+
+            {/* Flyer URL */}
+            <div className={form.delivery_type === 'live' ? '' : 'md:col-span-2'}>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Flyer URL
-                <span className="text-gray-400 font-normal ml-1">(optional — PDF or image link)</span>
+                <span className="text-gray-400 font-normal ml-1">(optional)</span>
               </label>
               <input
                 className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -181,13 +290,22 @@ export default function InstructorDashboard() {
               />
             </div>
           </div>
+
+          {/* Info Box */}
+          <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-4">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> This course will be saved as a <strong>draft</strong>. 
+              You can submit it for admin approval later.
+            </p>
+          </div>
+
           <div className="flex gap-3 mt-5">
             <button
               onClick={handleSave}
               disabled={saving}
               className="bg-blue-600 text-white px-5 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? 'Saving...' : editTarget ? 'Save Changes' : 'Create Training'}
+              {saving ? 'Saving...' : editTarget ? 'Save Changes' : 'Save as Draft'}
             </button>
             <button onClick={closeForm}
               className="bg-gray-100 text-gray-600 px-4 py-2 rounded text-sm hover:bg-gray-200">
@@ -220,6 +338,7 @@ export default function InstructorDashboard() {
                 <tr>
                   <th className="px-4 py-3 text-left">Title</th>
                   <th className="px-4 py-3 text-left">Category</th>
+                  <th className="px-4 py-3 text-left">Type</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Action</th>
                 </tr>
@@ -230,11 +349,22 @@ export default function InstructorDashboard() {
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{t.title}</div>
                       <div className="flex gap-2 mt-0.5">
-                        {t.video_url && <span className="text-xs text-blue-500">▶ Video</span>}
-                        {t.flyer_url && <span className="text-xs text-green-500">📄 Flyer</span>}
+                        {t.target_audience && (
+                          <span className="text-xs text-gray-500">👥 {t.target_audience}</span>
+                        )}
+                        {t.duration_hours && (
+                          <span className="text-xs text-gray-500">⏱ {t.duration_hours}h</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">{t.category || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        t.delivery_type === 'live' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {t.delivery_type === 'live' ? '🔴 Live' : '📚 Self-Paced'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge(t.status)}`}>
                         {t.status}
@@ -242,6 +372,12 @@ export default function InstructorDashboard() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => navigate(`/instructor/manage-content/${t.id}`)}
+                          className="text-green-600 text-xs hover:underline font-medium"
+                        >
+                          📚 Content
+                        </button>
                         <button
                           onClick={() => openEdit(t)}
                           className="text-gray-500 text-xs hover:text-blue-600 hover:underline"
@@ -255,10 +391,18 @@ export default function InstructorDashboard() {
                           </button>
                         )}
                         {t.status === 'draft' && (
-                          <span className="text-xs text-gray-400">Awaiting approval</span>
+                          <button
+                            onClick={() => handleSubmitForReview(t.id)}
+                            className="bg-purple-600 text-white text-xs px-3 py-1 rounded hover:bg-purple-700"
+                          >
+                            Submit for Review
+                          </button>
+                        )}
+                        {t.status === 'submitted' && (
+                          <span className="text-xs text-purple-600">⏳ Pending Review</span>
                         )}
                         {t.status === 'approved' && (
-                          <span className="text-xs text-gray-400">Ready to publish</span>
+                          <span className="text-xs text-blue-600">✓ Approved</span>
                         )}
                       </div>
                     </td>

@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { getAllTrainings, approveTraining, publishTraining, getAuditLogs, getCompletionReport } from '../../api/client'
 
 export default function AdminDashboard() {
-  const [trainings, setTrainings]         = useState([])
-  const [logs, setLogs]                   = useState([])
-  const [tab, setTab]                     = useState('approvals')
-  const [loading, setLoading]             = useState(true)
+  const [trainings, setTrainings] = useState([])
+  const [logs, setLogs] = useState([])
+  const [tab, setTab] = useState('approvals')
+  const [loading, setLoading] = useState(true)
   const [reportTrainingId, setReportTrainingId] = useState('')
-  const [reportData, setReportData]       = useState([])
+  const [reportData, setReportData] = useState([])
   const [reportLoading, setReportLoading] = useState(false)
-  const [reportError, setReportError]     = useState('')
+  const [reportError, setReportError] = useState('')
 
   useEffect(() => { load() }, [])
 
@@ -23,12 +23,28 @@ export default function AdminDashboard() {
     finally { setLoading(false) }
   }
 
-  const approve = async (id) => { try { await approveTraining(id); await load() } catch(e) { alert(e.response?.data?.detail) } }
-  const publish = async (id) => { try { await publishTraining(id); await load() } catch(e) { alert(e.response?.data?.detail) } }
+  const approve = async (id) => { 
+    try { 
+      await approveTraining(id)
+      await load() 
+    } catch(e) { 
+      alert(e.response?.data?.detail) 
+    } 
+  }
+  
+  const publish = async (id) => { 
+    try { 
+      await publishTraining(id)
+      await load() 
+    } catch(e) { 
+      alert(e.response?.data?.detail) 
+    } 
+  }
 
   const badge = (s) => ({
-    draft:     'bg-yellow-100 text-yellow-700',
-    approved:  'bg-blue-100 text-blue-700',
+    draft: 'bg-yellow-100 text-yellow-700',
+    submitted: 'bg-purple-100 text-purple-700',
+    approved: 'bg-blue-100 text-blue-700',
     published: 'bg-green-100 text-green-700',
   }[s] || 'bg-gray-100 text-gray-600')
 
@@ -133,15 +149,23 @@ export default function AdminDashboard() {
 
   const pending = trainings.filter(t => t.status === 'draft' || t.status === 'approved')
   const published = trainings.filter(t => t.status === 'published')
+  const submitted = trainings.filter(t => t.status === 'submitted')
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Admin Dashboard</h1>
-
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <a
+          href="/admin/course-review"
+          className="bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-purple-700"
+        >
+          📋 Review Courses ({submitted.length})
+        </a>
+      </div>
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          ['Pending',   trainings.filter(t => t.status === 'draft').length,     'text-yellow-600'],
-          ['Approved',  trainings.filter(t => t.status === 'approved').length,  'text-blue-600'],
+          ['Pending', trainings.filter(t => t.status === 'submitted').length, 'text-purple-600'],
+          ['Approved', trainings.filter(t => t.status === 'approved').length, 'text-blue-600'],
           ['Published', trainings.filter(t => t.status === 'published').length, 'text-green-600'],
         ].map(([l, v, c]) => (
           <div key={l} className="bg-white rounded-lg shadow p-4 text-center">
@@ -160,7 +184,6 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* APPROVALS */}
       {tab === 'approvals' && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {pending.length === 0
@@ -181,7 +204,7 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 text-xs text-gray-500">{t.category || '—'}</td>
                       <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${badge(t.status)}`}>{t.status}</span></td>
                       <td className="px-4 py-3">
-                        {t.status === 'draft'    && <button onClick={() => approve(t.id)} className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700">Approve</button>}
+                        {t.status === 'draft' && <button onClick={() => approve(t.id)} className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700">Approve</button>}
                         {t.status === 'approved' && <button onClick={() => publish(t.id)} className="bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700">Publish</button>}
                       </td>
                     </tr>
@@ -192,7 +215,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ALL TRAININGS */}
       {tab === 'all' && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">
@@ -216,10 +238,8 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* REPORTS */}
       {tab === 'reports' && (
         <div>
-          {/* Training selector */}
           <div className="bg-white rounded-lg shadow p-5 mb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Completions Report</h2>
             <div className="flex gap-3 items-end">
@@ -246,12 +266,10 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Results */}
           {reportError && <p className="text-center py-6 text-gray-400">{reportError}</p>}
 
           {reportData.length > 0 && (
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              {/* Header row with export buttons */}
               <div className="flex justify-between items-center px-4 py-3 border-b bg-gray-50">
                 <span className="text-sm font-medium text-gray-700">
                   {reportData.length} completion{reportData.length !== 1 ? 's' : ''} —{' '}
@@ -306,7 +324,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* AUDIT LOG */}
       {tab === 'logs' && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">

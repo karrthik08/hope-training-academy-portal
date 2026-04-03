@@ -43,8 +43,14 @@ export const createTraining = (data) =>
 export const updateTraining = (id, data) =>
   api.put(`/trainings/${id}`, data).then((r) => r.data)
 
+export const submitTraining = (id) =>
+  api.post(`/trainings/${id}/submit`).then((r) => r.data)
+
 export const approveTraining = (id) =>
   api.patch(`/trainings/${id}/approve`).then((r) => r.data)
+
+export const rejectTraining = (id) =>
+  api.post(`/trainings/${id}/reject`).then((r) => r.data)
 
 export const publishTraining = (id) =>
   api.patch(`/trainings/${id}/publish`).then((r) => r.data)
@@ -103,3 +109,30 @@ export const getAllOnboardingProgress = () =>
 
 export const approveOnboarding = (userId) =>
   api.post(`/onboarding/admin/approve/${userId}`).then((r) => r.data)
+
+// Course Content API
+export const getCourseContent = (trainingId) =>
+  api.get(`/course-content/training/${trainingId}`).then((r) => r.data)
+
+export const createCourseContent = (data) =>
+  api.post('/course-content/', data).then((r) => r.data)
+
+export const updateCourseContent = (id, data) =>
+  api.put(`/course-content/${id}`, data).then((r) => r.data)
+
+export const deleteCourseContent = (id) =>
+  api.delete(`/course-content/${id}`).then((r) => r.data)
+
+// Content Progress API
+export const getContentProgress = (enrollmentId) =>
+  api.get(`/content-progress/enrollment/${enrollmentId}`).then((r) => r.data)
+
+export const markContentComplete = (enrollmentId, contentId) =>
+  api.post('/content-progress/mark-complete', null, {
+    params: { enrollment_id: enrollmentId, content_id: contentId }
+  }).then((r) => r.data)
+
+export const markContentIncomplete = (enrollmentId, contentId) =>
+  api.post('/content-progress/mark-incomplete', null, {
+    params: { enrollment_id: enrollmentId, content_id: contentId }
+  }).then((r) => r.data)
