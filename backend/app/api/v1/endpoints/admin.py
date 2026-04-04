@@ -53,3 +53,62 @@ async def list_audit_logs(
 ):
     result = await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit))
     return result.scalars().all()
+@router.get("/stats/enrollments")
+async def get_enrollment_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("Admin")),
+):
+    """Get enrollment statistics for admin dashboard"""
+    
+    # Total enrollments
+    total_enrollments_result = await db.execute(
+        text("SELECT COUNT(*) as count FROM enrollments")
+    )
+    total_enrollments = total_enrollments_result.scalar()
+    
+    # Active enrollments (status = enrolled)
+    active_enrollments_result = await db.execute(
+        text("SELECT COUNT(*) as count FROM enrollments WHERE enrollment_status = 'enrolled'")
+    )
+    active_enrollments = active_enrollments_result.scalar()
+    
+    # Completed enrollments
+    completed_enrollments_result = await db.execute(
+        text("SELECT COUNT(*) as count FROM enrollments WHERE enrollment_status = 'completed'")
+    )
+    completed_enrollments = completed_enrollments_result.scalar()
+    
+    # Unique active participants
+    active_participants_result = await db.execute(
+        text("SELECT COUNT(DISTINCT user_id) as count FROM enrollments WHERE enrollment_status = 'enrolled'")
+    )
+    active_participants = active_participants_result.scalar()
+    
+    # Completion rate
+    completion_rate = 0
+    if total_enrollments > 0:
+        completion_rate = round((completed_enrollments / total_enrollments) * 100, 1)
+    
+    # Enrollments by category
+    category_stats_result = await db.execute(
+        text("""
+            SELECT t.category, COUNT(e.id) as enrollment_count
+            FROM enrollments e
+            JOIN trainings t ON e.training_id = t.id
+            WHERE t.category IS NOT NULL
+            GROUP BY t.category
+            ORDER BY enrollment_count DESC
+            LIMIT 5
+        """)
+    )
+    category_stats = [{"category": row.category, "count": row.enrollment_count} 
+                     for row in category_stats_result]
+    
+    return {
+        "total_enrollments": total_enrollments,
+        "active_enrollments": active_enrollments,
+        "completed_enrollments": completed_enrollments,
+        "active_participants": active_participants,
+        "completion_rate": completion_rate,
+        "category_breakdown": category_stats
+    }

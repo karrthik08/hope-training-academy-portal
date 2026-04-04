@@ -49,9 +49,8 @@ export default function CertificatePage() {
 
   const template = (data.certificate_template || "OOH").toUpperCase();
   const imgSrc =
-    template === "PPW"       ? "/certificates/ppw-certificate.png" :
-    template === "CORPORATE" ? "/certificates/corporate-certificate.png" :
-                               "/certificates/ooh-certificate.png";
+    template === "PPW" ? "/certificates/ppw-certificate.png" :
+                         "/certificates/ooh-certificate.png";
 
   return (
     <div style={{
@@ -137,47 +136,6 @@ export default function CertificatePage() {
           </div>
           <div style={{
             position:"absolute", bottom:"13.5%", left:"50%", transform:"translateX(-50%)",
-            fontSize:"0.75vw", color:"#aaa", whiteSpace:"nowrap",
-          }}>
-            Certificate ID: {data.certificate_id}
-          </div>
-        </>}
-
-        {template === "CORPORATE" && <>
-          <div style={{
-            position:"absolute", top:"30%", left:"15%", right:"15%",
-            textAlign:"center", fontSize:"2.8vw", fontWeight:"bold",
-            fontStyle:"italic", color:"#1a1a1a",
-          }}>
-            {data.participant_name}
-          </div>
-          <div style={{
-            position:"absolute", top:"52%", left:"15%", right:"15%",
-            textAlign:"center", fontSize:"1.6vw", fontWeight:"bold",
-            color:"#2c5a1e", lineHeight:1.3,
-          }}>
-            {data.training_title}
-          </div>
-          <div style={{
-            position:"absolute", top:"62%", left:"42.5%",
-            fontSize:"1.3vw", color:"#333", fontWeight:"bold",
-          }}>
-            {day}
-          </div>
-          <div style={{
-            position:"absolute", top:"62%", left:"56%",
-            fontSize:"1.3vw", color:"#333", fontWeight:"bold",
-          }}>
-            {month}
-          </div>
-          <div style={{
-            position:"absolute", top:"62%", left:"68%",
-            fontSize:"1.3vw", color:"#333", fontWeight:"bold",
-          }}>
-            {year}
-          </div>
-          <div style={{
-            position:"absolute", bottom:"5.5%", left:"50%", transform:"translateX(-50%)",
             fontSize:"0.75vw", color:"#aaa", whiteSpace:"nowrap",
           }}>
             Certificate ID: {data.certificate_id}

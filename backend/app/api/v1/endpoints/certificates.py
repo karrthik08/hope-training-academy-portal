@@ -9,7 +9,7 @@ router = APIRouter(tags=["certificates"])
 
 @router.get("/enrollments/{enrollment_id}/certificate")
 async def get_certificate(
-    enrollment_id: uuid.UUID,  # Changed to UUID type
+    enrollment_id: uuid.UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get certificate data for an enrollment"""
@@ -32,7 +32,7 @@ async def get_certificate(
             LEFT JOIN completions c ON e.id = c.enrollment_id
             WHERE e.id = :enrollment_id
         """),
-        {"enrollment_id": str(enrollment_id)}  # Convert UUID to string for SQL
+        {"enrollment_id": str(enrollment_id)}
     )
     
     row = result.first()
@@ -40,12 +40,18 @@ async def get_certificate(
         raise HTTPException(status_code=404, detail="Certificate not found")
     
     # Determine certificate template based on category
+    # Patricia's requirements: Only 2 templates
+    # 1. PPW template for PPW/PTND courses
+    # 2. OOH template for ALL internal courses
     category = row.category or ""
-    if "PPW" in category.upper() or "PATRECIA" in category.upper():
+    title = row.training_title or ""
+    
+    # Check if this is a PPW or PTND course
+    if any(keyword in category.upper() for keyword in ["PPW", "PTND"]) or \
+       any(keyword in title.upper() for keyword in ["PPW", "PTND"]):
         template = "PPW"
-    elif any(x in category.upper() for x in ["BUSINESS", "WORKFORCE", "LEADERSHIP"]):
-        template = "CORPORATE"
     else:
+        # All other courses use the branded OOH template
         template = "OOH"
     
     return {

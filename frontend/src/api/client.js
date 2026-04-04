@@ -136,3 +136,13 @@ export const markContentIncomplete = (enrollmentId, contentId) =>
   api.post('/content-progress/mark-incomplete', null, {
     params: { enrollment_id: enrollmentId, content_id: contentId }
   }).then((r) => r.data)
+
+// Course Completion API
+export const checkAndCompleteCourse = (enrollmentId) =>
+  api.post(`/course-completion/check-and-complete/${enrollmentId}`).then((r) => r.data)
+
+// Admin Enrollment Stats
+export const getEnrollmentStats = () =>
+  api.get('/admin/stats/enrollments').then((r) => r.data)
+
+// Admin Enrollment Stats

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { myEnrollments, getCourseContent, getContentProgress, markContentComplete, markContentIncomplete } from '../../api/client'
+import { myEnrollments, getCourseContent, getContentProgress, markContentComplete, markContentIncomplete, checkAndCompleteCourse } from '../../api/client'
 
 export default function CourseView() {
   const { enrollmentId } = useParams()
@@ -54,8 +54,20 @@ export default function CourseView() {
         await markContentComplete(enrollmentId, contentId)
       }
       await loadData()
+      
+      // Check if course is now complete
+      const completionResult = await checkAndCompleteCourse(enrollmentId)
+      if (completionResult.status === 'completed') {
+        // Reload to get updated enrollment status
+        await loadData()
+        alert('🎉 Congratulations! You completed the course! Your certificate is ready.')
+      }
     } catch (e) {
-      alert('Failed to update progress')
+      console.error(e)
+      // Don't show alert for completion check failures
+      if (!e.response?.data?.detail?.includes('Course has no content')) {
+        alert('Failed to update progress')
+      }
     }
   }
 
