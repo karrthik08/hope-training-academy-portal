@@ -1,5 +1,5 @@
 import React from 'react'
-import NotificationBell from '../components/NotificationBell'
+import NotificationBell from '../Components/NotificationBell'
 import HelpSupport from '../components/HelpSupport'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
