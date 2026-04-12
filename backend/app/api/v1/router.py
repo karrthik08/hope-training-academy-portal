@@ -25,7 +25,7 @@ api_router.include_router(progress.router)
 api_router.include_router(completion.router)
 api_router.include_router(notifications.router)
 api_router.include_router(reports.router)
-api_router.include_router(support.router)
+api_router.include_router(support.router, prefix="/support", tags=["support"])
 api_router.include_router(
     admin_metrics.router,
     prefix="/admin",

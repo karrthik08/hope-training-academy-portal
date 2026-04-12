@@ -170,8 +170,7 @@ export default function App() {
             }
           />
           <Route
-
-          path="instructor/view-course/:trainingId"
+            path="instructor/view-course/:trainingId"
             element={
               <ProtectedRoute allowedRoles={['Instructor', 'Admin']}>
                 <InstructorCourseView />
@@ -196,9 +195,9 @@ export default function App() {
             }
           />
           <Route
-            path="admin/metrics"
+            path="/admin/metrics"
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute allowedRoles={["Admin"]}>
                 <MetricsDashboard />
               </ProtectedRoute>
             }
@@ -206,7 +205,7 @@ export default function App() {
           <Route
             path="/admin/course-review"
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute allowedRoles={["Admin"]}>
                 <CourseReview />
               </ProtectedRoute>
             }
