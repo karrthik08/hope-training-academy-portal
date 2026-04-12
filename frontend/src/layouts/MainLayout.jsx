@@ -1,6 +1,6 @@
 import React from 'react'
 import NotificationBell from '../Components/NotificationBell'
-import HelpSupport from '../components/HelpSupport'
+import HelpSupport from '../Components/HelpSupport'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
