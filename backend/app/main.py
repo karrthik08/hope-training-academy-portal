@@ -6,7 +6,7 @@ app = FastAPI(title="HOPE Training Academy API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend URL
+    allow_origins=["http://localhost:5173", "https://hope-frontend-qm4p.onrender.com"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
