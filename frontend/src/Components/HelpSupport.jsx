@@ -18,7 +18,7 @@ const HelpSupport = () => {
     setSubmitMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/support/submit', {
+      const response = await fetch('`${import.meta.env.VITE_API_BASE_URL}/api/v1/support/submit`', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
