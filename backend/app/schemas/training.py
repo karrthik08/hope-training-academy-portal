@@ -14,7 +14,14 @@ class TrainingCreate(BaseModel):
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     video_url: Optional[str] = None
+    dropbox_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    instructor_manual_url: Optional[str] = None
+    knowledge_mgmt_folder_url: Optional[str] = None
+    student_handbook_url: Optional[str] = None
+    student_workbook_url: Optional[str] = None
+    slides_url: Optional[str] = None
+    qrc_surveys_url: Optional[str] = None
     status: str = "draft"
 
 class TrainingUpdate(BaseModel):
@@ -29,7 +36,14 @@ class TrainingUpdate(BaseModel):
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     video_url: Optional[str] = None
+    dropbox_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    instructor_manual_url: Optional[str] = None
+    knowledge_mgmt_folder_url: Optional[str] = None
+    student_handbook_url: Optional[str] = None
+    student_workbook_url: Optional[str] = None
+    slides_url: Optional[str] = None
+    qrc_surveys_url: Optional[str] = None
     status: Optional[str] = None
 
 class TrainingOut(BaseModel):
@@ -52,7 +66,15 @@ class TrainingOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     video_url: Optional[str] = None
+    dropbox_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    instructor_manual_url: Optional[str] = None
+    knowledge_mgmt_folder_url: Optional[str] = None
+    student_handbook_url: Optional[str] = None
+    student_workbook_url: Optional[str] = None
+    slides_url: Optional[str] = None
+    qrc_surveys_url: Optional[str] = None
+    self_enrollment_enabled: Optional[bool] = False
     
     model_config = {"from_attributes": True}
 
@@ -64,6 +86,9 @@ class EnrollmentOut(BaseModel):
     enrolled_at: datetime
     canceled_at: Optional[datetime]
     participant_name: Optional[str] = None
+    participant_email: Optional[str] = None
+    participant_email: Optional[str] = None
+    
     
     model_config = {"from_attributes": True}
 

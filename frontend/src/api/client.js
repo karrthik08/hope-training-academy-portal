@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL + '/api/v1',
   headers: { 'Content-Type': 'application/json' },
 })
@@ -23,126 +23,92 @@ api.interceptors.response.use(
   }
 )
 
+const getAuthHeader = () => {
+  const token = localStorage.getItem('hope_access_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export default api
 
-export const login = (email, password) =>
-  api.post('/auth/login', { email, password }).then((r) => r.data)
+// Auth
+export const login = (email, password) => api.post('/auth/login', { email, password })
+export const register = (userData) => api.post('/auth/register', userData)
 
-export const register = (full_name, email, password) =>
-  api.post('/auth/register', { full_name, email, password }).then((r) => r.data)
+// Trainings
+export const getAllTrainings = () => api.get('/trainings').then(r => r.data)
+export const getTrainingById = (id) => api.get(`/trainings/${id}`).then(r => r.data)
+export const createTraining = (data) => api.post('/trainings', data).then(r => r.data)
+export const updateTraining = (id, data) => api.put(`/trainings/${id}`, data).then(r => r.data)
+export const deleteTraining = (id) => api.delete(`/trainings/${id}`).then(r => r.data)
+export const submitForReview = (id) => api.post(`/trainings/${id}/submit`).then(r => r.data)
 
-export const getPublicTrainings = () =>
-  api.get('/trainings/public').then((r) => r.data)
+// Enrollments
+export const enrollInTraining = (trainingId) => api.post(`/enrollments/${trainingId}`).then(r => r.data)
+export const getMyEnrollments = () => api.get('/enrollments/my').then(r => r.data)
+export const unenrollFromTraining = (trainingId) => api.delete(`/enrollments/${trainingId}`).then(r => r.data)
 
-export const getAllTrainings = () =>
-  api.get('/trainings/').then((r) => r.data)
+// Instructor
+export const getInstructorTrainings = () => api.get('/instructor/trainings').then(r => r.data)
+export const getTrainingRoster = (trainingId) => api.get(`/instructor/trainings/${trainingId}/roster`).then(r => r.data)
 
-export const createTraining = (data) =>
-  api.post('/trainings/', data).then((r) => r.data)
+// Admin
+export const getPendingTrainings = () => api.get('/admin/trainings/pending').then(r => r.data)
+export const approveTraining = (id) => api.post(`/admin/trainings/${id}/approve`).then(r => r.data)
+export const rejectTraining = (id, reason) => api.post(`/admin/trainings/${id}/reject`, { reason }).then(r => r.data)
+export const publishTraining = (id) => api.post(`/admin/trainings/${id}/publish`).then(r => r.data)
+export const getAllUsers = () => api.get('/admin/users').then(r => r.data)
+export const updateUserRole = (userId, roleId) => api.put(`/admin/users/${userId}/role`, { role_id: roleId }).then(r => r.data)
+export const getCompletionReport = () => api.get('/admin/reports/completion').then(r => r.data)
+export const getAuditLogs = () => api.get('/admin/audit-logs').then(r => r.data)
 
-export const updateTraining = (id, data) =>
-  api.put(`/trainings/${id}`, data).then((r) => r.data)
+// Certificates
+export const getCertificate = (enrollmentId) => api.get(`/enrollments/${enrollmentId}/certificate`).then(r => r.data)
+export const verifyCertificate = (certId) => api.get(`/certificates/verify/${certId}`).then(r => r.data)
 
-export const submitTraining = (id) =>
-  api.post(`/trainings/${id}/submit`).then((r) => r.data)
+// Onboarding
+export const getOnboardingStatus = () => api.get('/onboarding/status').then(r => r.data)
+export const completeOnboardingStep = (step) => api.post(`/onboarding/complete/${step}`).then(r => r.data)
 
-export const approveTraining = (id) =>
-  api.patch(`/trainings/${id}/approve`).then((r) => r.data)
+// Course Content
+export const getCourseContent = (trainingId) => api.get(`/course-content/training/${trainingId}`).then(r => r.data)
+export const createCourseContent = (data) => api.post('/course-content', data).then(r => r.data)
+export const updateCourseContent = (id, data) => api.put(`/course-content/${id}`, data).then(r => r.data)
+export const deleteCourseContent = (id) => api.delete(`/course-content/${id}`).then(r => r.data)
 
-export const rejectTraining = (id) =>
-  api.post(`/trainings/${id}/reject`).then((r) => r.data)
+// Content Progress
+export const getContentProgress = (enrollmentId) => api.get(`/content-progress/enrollment/${enrollmentId}`).then(r => r.data)
+export const markContentComplete = (enrollmentId, contentId) => api.post('/content-progress/complete', { enrollment_id: enrollmentId, content_id: contentId }).then(r => r.data)
+export const markContentIncomplete = (enrollmentId, contentId) => api.post('/content-progress/incomplete', { enrollment_id: enrollmentId, content_id: contentId }).then(r => r.data)
 
-export const publishTraining = (id) =>
-  api.patch(`/trainings/${id}/publish`).then((r) => r.data)
+// Course Completion
+export const checkAndCompleteCourse = (enrollmentId) => api.post(`/course-completion/check-and-complete/${enrollmentId}`).then(r => r.data)
 
-export const unpublishTraining = (id) =>
-  api.patch(`/trainings/${id}/unpublish`).then((r) => r.data)
+// Attendance & Completion
+export const markAttendance = (enrollmentId, attendanceStatus) => 
+  api.post(`/enrollments/${enrollmentId}/attendance`, { attendance_status: attendanceStatus }).then(r => r.data)
 
-export const enroll = (trainingId) =>
-  api.post(`/enrollments/${trainingId}`).then((r) => r.data)
+export const markCompletion = (enrollmentId) => 
+  api.post(`/enrollments/${enrollmentId}/complete`).then(r => r.data)
 
-export const cancelEnrollment = (trainingId) =>
-  api.delete(`/enrollments/${trainingId}`).then((r) => r.data)
+export const getCompletionByEnrollment = (enrollmentId) => 
+  api.get(`/enrollments/${enrollmentId}/completion`).then(r => r.data)
 
-export const myEnrollments = () =>
-  api.get('/enrollments/my').then((r) => r.data)
+// Get enrollment by ID
+export const getEnrollmentById = async (enrollmentId) => {
+  const response = await api.get(`/enrollments/${enrollmentId}/details`);
+  return response.data;
+};
 
-export const getRoster = (trainingId) =>
-  api.get(`/instructor/trainings/${trainingId}/roster`).then((r) => r.data)
+// Missing exports that other components need
+export const enroll = enrollInTraining
+export const cancelEnrollment = unenrollFromTraining
+export const getRoster = getTrainingRoster
 
-export const markAttendance = (enrollmentId, attendanceStatus) =>
-  api.post('/instructor/attendance', {
-    enrollment_id: enrollmentId,
-    attendance_status: attendanceStatus,
-  }).then((r) => r.data)
 
-export const markCompletion = (enrollmentId) =>
-  api.post(`/instructor/completions/${enrollmentId}`).then((r) => r.data)
+export const submitTraining = submitForReview
+export const myEnrollments = getMyEnrollments
 
-export const getRosterReport = (trainingId) =>
-  api.get(`/admin/reports/roster/${trainingId}`).then((r) => r.data)
+// FIX: getPublicTrainings should call /trainings/public, not /trainings/
 
-export const getCompletionReport = (trainingId) =>
-  api.get(`/admin/reports/completions/${trainingId}`).then((r) => r.data)
-
-export const getAuditLogs = () =>
-  api.get('/admin/audit-logs').then((r) => r.data)
-
-export const getCompletionByEnrollment = (enrollmentId) =>
-  api.get(`/instructor/completions-by-enrollment/${enrollmentId}`).then(r => r.data)
-
-// Onboarding API functions
-export const getOnboardingTrainings = () =>
-  api.get('/onboarding/trainings').then((r) => r.data)
-
-export const getMyOnboardingProgress = () =>
-  api.get('/onboarding/my-progress').then((r) => r.data)
-
-export const updateOnboardingItem = (trainingId, proofLink, initials) =>
-  api.post('/onboarding/update-item', { training_id: trainingId, proof_link: proofLink, initials }).then((r) => r.data)
-
-export const submitOnboarding = () =>
-  api.post('/onboarding/submit').then((r) => r.data)
-
-export const getAllOnboardingProgress = () =>
-  api.get('/onboarding/admin/all-progress').then((r) => r.data)
-
-export const approveOnboarding = (userId) =>
-  api.post(`/onboarding/admin/approve/${userId}`).then((r) => r.data)
-
-// Course Content API
-export const getCourseContent = (trainingId) =>
-  api.get(`/course-content/training/${trainingId}`).then((r) => r.data)
-
-export const createCourseContent = (data) =>
-  api.post('/course-content/', data).then((r) => r.data)
-
-export const updateCourseContent = (id, data) =>
-  api.put(`/course-content/${id}`, data).then((r) => r.data)
-
-export const deleteCourseContent = (id) =>
-  api.delete(`/course-content/${id}`).then((r) => r.data)
-
-// Content Progress API
-export const getContentProgress = (enrollmentId) =>
-  api.get(`/content-progress/enrollment/${enrollmentId}`).then((r) => r.data)
-
-export const markContentComplete = (enrollmentId, contentId) =>
-  api.post('/content-progress/mark-complete', null, {
-    params: { enrollment_id: enrollmentId, content_id: contentId }
-  }).then((r) => r.data)
-
-export const markContentIncomplete = (enrollmentId, contentId) =>
-  api.post('/content-progress/mark-incomplete', null, {
-    params: { enrollment_id: enrollmentId, content_id: contentId }
-  }).then((r) => r.data)
-
-// Course Completion API
-export const checkAndCompleteCourse = (enrollmentId) =>
-  api.post(`/course-completion/check-and-complete/${enrollmentId}`).then((r) => r.data)
-
-// Admin Enrollment Stats
-export const getEnrollmentStats = () =>
-  api.get('/admin/stats/enrollments').then((r) => r.data)
-
-// Admin Enrollment Stats
+// Public trainings (no auth required)
+export const getPublicTrainings = () => api.get('/trainings/public').then(r => r.data)

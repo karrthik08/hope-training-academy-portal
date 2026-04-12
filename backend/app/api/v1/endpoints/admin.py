@@ -112,3 +112,74 @@ async def get_enrollment_stats(
         "completion_rate": completion_rate,
         "category_breakdown": category_stats
     }
+
+@router.get("/metrics")
+async def get_metrics(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("Admin"))
+):
+    """Get admin dashboard metrics"""
+    from sqlalchemy import func, select
+    from app.models.training import Training, Enrollment, EnrollmentStatus
+    from app.models.user import User
+    
+    # Total trainings
+    total_trainings = await db.scalar(select(func.count(Training.id)))
+    
+    # Total users
+    total_users = await db.scalar(select(func.count(User.id)))
+    
+    # Total enrollments
+    total_enrollments = await db.scalar(select(func.count(Enrollment.id)))
+    
+    # Completion rate
+    completed = await db.scalar(
+        select(func.count(Enrollment.id)).where(
+            Enrollment.enrollment_status == EnrollmentStatus.completed
+        )
+    )
+    completion_rate = round((completed / total_enrollments * 100) if total_enrollments > 0 else 0, 1)
+    
+    # Popular trainings
+    popular_trainings_result = await db.execute(
+        select(
+            Training.id,
+            Training.title,
+            func.count(Enrollment.id).label('enrollment_count')
+        )
+        .join(Enrollment, Training.id == Enrollment.training_id)
+        .group_by(Training.id, Training.title)
+        .order_by(func.count(Enrollment.id).desc())
+        .limit(5)
+    )
+    popular_trainings = [
+        {"id": str(row[0]), "title": row[1], "enrollments": row[2]}
+        for row in popular_trainings_result.all()
+    ]
+    
+    # Recent enrollments
+    recent_enrollments_result = await db.execute(
+        select(Enrollment, Training.title, User.email)
+        .join(Training, Enrollment.training_id == Training.id)
+        .join(User, Enrollment.user_id == User.id)
+        .order_by(Enrollment.enrolled_at.desc())
+        .limit(10)
+    )
+    recent_enrollments = [
+        {
+            "training": row[1],
+            "user": row[2],
+            "date": row[0].enrolled_at.isoformat(),
+            "status": row[0].enrollment_status
+        }
+        for row in recent_enrollments_result.all()
+    ]
+    
+    return {
+        "totalTrainings": total_trainings or 0,
+        "totalUsers": total_users or 0,
+        "totalEnrollments": total_enrollments or 0,
+        "completionRate": completion_rate,
+        "popularTrainings": popular_trainings,
+        "recentActivity": recent_enrollments
+    }

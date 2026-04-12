@@ -1,0 +1,8 @@
+          <Route
+            path="instructor/course-builder/:trainingId"
+            element={
+              <ProtectedRoute allowedRoles={['Instructor', 'Admin']}>
+                <CourseBuilder />
+              </ProtectedRoute>
+            }
+          />

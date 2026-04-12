@@ -78,42 +78,83 @@ export default function CertificatePage() {
       }}>
         <img src={imgSrc} alt="Certificate" style={{ width:"100%", display:"block" }} />
 
-        {template === "OOH" && <>
+        {/* CORPORATE and OOH templates use the same certificate image */}
+        {(template === "OOH" || template === "CORPORATE") && <>
+          {/* PARTICIPANT NAME - Below "Proudly Presented to" */}
           <div style={{
-            position:"absolute", top:"39%", left:"25%", right:"5%",
+            position:"absolute", top:"42%", left:"25%", right:"5%",
             textAlign:"center", fontSize:"2.3vw", fontWeight:"bold",
             fontStyle:"italic", color:"#1a1a2e",
           }}>
             {data.participant_name}
           </div>
+          
+          {/* TRAINING TITLE - "On" line */}
           <div style={{
-            position:"absolute", top:"60.5%", left:"48%",
-            fontSize:"1.3vw", color:"#333", fontWeight:"bold",
-          }}>
-            {fullDate}
-          </div>
-          <div style={{
-            position:"absolute", top:"61.5%", left:"33.5%",
-            fontSize:"0.9vw", color:"#333", fontStyle:"italic",
-          }}>
-            {data.duration_hours || "N/A"}
-          </div>
-          <div style={{
-            position:"absolute", top:"52.5%", left:"50%", right:"30%",
-            fontSize:"0.9vw", color:"#333", fontStyle:"italic", fontWeight:"bold",
+            position:"absolute", 
+            top:"50.5%", 
+            left:"50%", 
+            transform:"translateX(-50%)",
+            fontSize:"1.4vw", 
+            color:"#333", 
+            fontStyle:"italic", 
+            fontWeight:"bold",
             lineHeight:1.25,
+            textAlign:"center",
+            width:"50%"
           }}>
             {data.training_title}
           </div>
+          
+          {/* DURATION HOURS - "( ) hours of" */}
           <div style={{
-            position:"absolute", bottom:"4.5%", left:"4%",
-            fontSize:"0.8vw", color:"#555",
+            position:"absolute", 
+            top:"61.5%", 
+            left:"33.9%",
+            fontSize:"0.9vw", 
+            color:"#333", 
+            fontStyle:"italic",
+          }}>
+            {data.duration_hours || "N/A"}
+          </div>
+          
+          {/* COMPLETION DATE */}
+          <div style={{
+            position:"absolute", 
+            top:"60.5%", 
+            left:"48%",
+            fontSize:"1.3vw", 
+            color:"#333", 
+            fontWeight:"bold",
+          }}>
+            {fullDate}
+          </div>
+          
+          {/* CERTIFICATE ID - Bottom left */}
+          <div style={{
+            position:"absolute", 
+            bottom:"4.5%", 
+            left:"4%",
+            fontSize:"0.8vw", 
+            color:"#555",
           }}>
             Cert ID: {data.certificate_id}
+          </div>
+          
+          {/* MABPCB PROVIDER NUMBER - Bottom right */}
+          <div style={{
+            position:"absolute", 
+            bottom:"4.5%", 
+            right:"4%",
+            fontSize:"0.8vw", 
+            color:"#555",
+          }}>
+            MABPCB Provider #: 24-081-P
           </div>
         </>}
 
         {template === "PPW" && <>
+          {/* PARTICIPANT NAME */}
           <div style={{
             position:"absolute", top:"39%", left:"15%", right:"15%",
             textAlign:"center", fontSize:"3vw", fontWeight:"bold",
@@ -121,6 +162,8 @@ export default function CertificatePage() {
           }}>
             {data.participant_name}
           </div>
+          
+          {/* TRAINING TITLE */}
           <div style={{
             position:"absolute", top:"55%", left:"12%", right:"12%",
             textAlign:"center", fontSize:"1.5vw", fontWeight:"bold",
@@ -128,17 +171,29 @@ export default function CertificatePage() {
           }}>
             {data.training_title}
           </div>
+          
+          {/* CERTIFICATION DATES */}
           <div style={{
             position:"absolute", top:"62.5%", left:"15%", right:"15%",
             textAlign:"center", fontSize:"1.15vw", color:"#8B6914", fontWeight:"bold",
           }}>
             Hour CEU: 3-Year Certification From: {fullDate} To: {expStr}
           </div>
+          
+          {/* CERTIFICATE ID */}
           <div style={{
             position:"absolute", bottom:"13.5%", left:"50%", transform:"translateX(-50%)",
             fontSize:"0.75vw", color:"#aaa", whiteSpace:"nowrap",
           }}>
             Certificate ID: {data.certificate_id}
+          </div>
+          
+          {/* MABPCB PROVIDER NUMBER */}
+          <div style={{
+            position:"absolute", bottom:"19%", left:"29%", transform:"translateX(-50%)",
+            fontSize:"0.8vw", color:"#8B6914", fontWeight:"600", whiteSpace:"nowrap",
+          }}>
+            Organization Provider Number: R-65407
           </div>
         </>}
       </div>

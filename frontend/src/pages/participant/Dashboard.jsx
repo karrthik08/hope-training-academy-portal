@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { myEnrollments, cancelEnrollment, getPublicTrainings, enroll } from '../../api/client'
+import { selfEnroll } from '../../api/enrollments'
 import { useAuthStore } from '../../store/authStore'
 import { Link } from 'react-router-dom'
 
@@ -22,7 +23,7 @@ const CATEGORY_COLORS = {
   'Workforce Development':                   'bg-teal-100 text-teal-700',
 }
 
-function VideoPlayer({ training, onVideoCompleted }) {
+function VideoPlayer({ training }) {
   const videoRef = useRef(null)
   const [watched, setWatched]   = useState(false)
   const [progress, setProgress] = useState(0)
@@ -39,7 +40,7 @@ function VideoPlayer({ training, onVideoCompleted }) {
     const { currentTime, duration } = videoRef.current
     if (duration > 0) setProgress(Math.round((currentTime / duration) * 100))
   }
-  const handleEnded = () => { setWatched(true); onVideoCompleted() }
+  const handleEnded = () => { setWatched(true) }
 
   if (isDropbox) {
     return (
@@ -53,10 +54,10 @@ function VideoPlayer({ training, onVideoCompleted }) {
             <div className="w-full bg-gray-200 rounded-full h-1.5">
               <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-xs text-gray-400 text-center">Watch full video to unlock certificate ({progress}% watched)</p>
+            <p className="text-xs text-gray-400 text-center">Video progress: {progress}%</p>
           </>
         )}
-        {watched && <p className="text-xs text-green-600 text-center font-medium">✅ Video complete! Click below to get your certificate.</p>}
+        {watched && <p className="text-xs text-green-600 text-center font-medium">✅ Video complete!</p>}
       </div>
     )
   }
@@ -68,7 +69,7 @@ function VideoPlayer({ training, onVideoCompleted }) {
           <iframe src={youtubeEmbed} title={training.title} className="w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
         </div>
-        <p className="text-xs text-amber-600 text-center">Watch the complete video above, then click Mark as Complete below.</p>
+        <p className="text-xs text-blue-600 text-center">Watch the training video above</p>
       </div>
     )
   }
@@ -84,8 +85,6 @@ export default function ParticipantDashboard() {
   const [loading, setLoading]               = useState(true)
   const [search, setSearch]                 = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
-  const [completingId, setCompletingId]     = useState(null)
-  const [watchedVideos, setWatchedVideos]   = useState({})
 
   useEffect(() => { load() }, [])
 
@@ -103,34 +102,20 @@ export default function ParticipantDashboard() {
   }
 
   const handleEnroll = async (id) => {
-    try { await enroll(id); await load() }
-    catch(e) { alert(e.response?.data?.detail || 'Failed') }
+    try { 
+      await selfEnroll(id);
+      await load();
+      alert('Successfully enrolled!');
+    }
+    catch(e) { 
+      alert(e.response?.data?.detail || 'Enrollment failed. Self-enrollment may not be enabled for this training.');
+    }
   }
 
   const handleCancel = async (id) => {
     if (!confirm('Cancel enrollment?')) return
     try { await cancelEnrollment(id); await load() }
     catch(e) { alert(e.response?.data?.detail || 'Failed') }
-  }
-
-  const handleMarkComplete = async (trainingId) => {
-    if (completingId === trainingId) return
-    setCompletingId(trainingId)
-    const token = localStorage.getItem('hope_access_token') || ''
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/enrollments/complete-by-video/${trainingId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        alert(err.detail || 'Failed to complete training.')
-        return
-      }
-      await load()
-      setTab('mine')
-    } catch(e) { console.error(e) }
-    finally { setCompletingId(null) }
   }
 
   if (loading) return <div className="text-center py-12 text-gray-400">Loading...</div>
@@ -185,7 +170,6 @@ export default function ParticipantDashboard() {
                   const hasVideo    = !!t?.video_url
                   const isCompleted = e.enrollment_status === 'completed'
                   const isEnrolled  = e.enrollment_status === 'enrolled'
-                  const videoWatched = watchedVideos[e.training_id]
 
                   return (
                     <React.Fragment key={e.id}>
@@ -226,33 +210,19 @@ export default function ParticipantDashboard() {
                         <tr className="bg-blue-50">
                           <td colSpan={5} className="px-6 py-4">
                             <div className="max-w-2xl flex flex-col gap-3">
-                              {hasVideo ? (
+                              {hasVideo && (
                                 <>
-                                  <p className="text-sm font-medium text-gray-700">📹 Watch the full video to complete:</p>
-                                  <VideoPlayer
-                                    training={t}
-                                    onVideoCompleted={() => setWatchedVideos(prev => ({ ...prev, [e.training_id]: true }))}
-                                  />
-                                  {videoWatched ? (
-                                    <button onClick={() => handleMarkComplete(e.training_id)} disabled={completingId === e.training_id}
-                                      className="w-full bg-green-600 text-white text-sm py-2.5 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50">
-                                      {completingId === e.training_id ? '⏳ Saving...' : '🎓 Get My Certificate'}
-                                    </button>
-                                  ) : (
-                                    <button disabled className="w-full bg-gray-300 text-gray-500 text-sm py-2.5 rounded-lg font-medium cursor-not-allowed">
-                                      🔒 Watch full video to unlock certificate
-                                    </button>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  <p className="text-sm font-medium text-gray-700">📋 Ready to complete this training?</p>
-                                  <button onClick={() => handleMarkComplete(e.training_id)} disabled={completingId === e.training_id}
-                                    className="bg-green-600 text-white text-sm py-2.5 px-6 rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 w-fit">
-                                    {completingId === e.training_id ? '⏳ Saving...' : '✅ Mark as Complete & Get Certificate'}
-                                  </button>
+                                  <p className="text-sm font-medium text-gray-700">📹 Training Video:</p>
+                                  <VideoPlayer training={t} />
                                 </>
                               )}
+                              
+                              <div className="bg-blue-100 border border-blue-300 text-blue-800 px-4 py-3 rounded">
+                                <p className="text-sm font-medium">
+                                  ℹ️ Your instructor will mark you as complete when you finish the training. 
+                                  You'll receive your certificate once they approve your completion.
+                                </p>
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -291,7 +261,6 @@ export default function ParticipantDashboard() {
               const completedEntry = enrollments.find(e => e.training_id === t.id && e.enrollment_status === 'completed')
               const isEnrolled     = !!enrolledEntry
               const isCompleted    = !!completedEntry
-              const videoWatched   = watchedVideos[t.id]
               const hasVideo       = !!t.video_url
 
               return (
@@ -305,7 +274,7 @@ export default function ParticipantDashboard() {
                   <p className="text-sm text-gray-500 flex-1 line-clamp-3">{t.description || 'No description provided.'}</p>
 
                   {hasVideo && isEnrolled && (
-                    <VideoPlayer training={t} onVideoCompleted={() => setWatchedVideos(prev => ({ ...prev, [t.id]: true }))} />
+                    <VideoPlayer training={t} />
                   )}
 
                   {t.flyer_url && (
@@ -320,23 +289,10 @@ export default function ParticipantDashboard() {
                       🎓 View Certificate →
                     </Link>
                   ) : isEnrolled ? (
-                    hasVideo ? (
-                      videoWatched ? (
-                        <button onClick={() => handleMarkComplete(t.id)} disabled={completingId === t.id}
-                          className="w-full bg-green-600 text-white text-sm py-2 rounded font-medium hover:bg-green-700 disabled:opacity-50">
-                          {completingId === t.id ? '⏳ Saving...' : '🎓 Get My Certificate'}
-                        </button>
-                      ) : (
-                        <button disabled className="w-full bg-gray-200 text-gray-400 text-sm py-2 rounded font-medium cursor-not-allowed">
-                          🔒 Watch full video to unlock
-                        </button>
-                      )
-                    ) : (
-                      <button onClick={() => handleMarkComplete(t.id)} disabled={completingId === t.id}
-                        className="w-full bg-green-600 text-white text-sm py-2 rounded font-medium hover:bg-green-700 disabled:opacity-50">
-                        {completingId === t.id ? '⏳ Saving...' : '✅ Mark as Complete & Get Certificate'}
-                      </button>
-                    )
+                    <Link to={`/course/${enrolledEntry.id}`}
+                      className="w-full block text-center bg-blue-600 text-white text-sm py-2 rounded font-medium hover:bg-blue-700">
+                      📚 Continue Training →
+                    </Link>
                   ) : (
                     <button onClick={() => handleEnroll(t.id)}
                       className="w-full bg-blue-600 text-white text-sm py-2 rounded hover:bg-blue-700">

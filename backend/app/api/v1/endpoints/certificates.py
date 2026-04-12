@@ -23,13 +23,13 @@ async def get_certificate(
                 t.title as training_title,
                 t.duration_hours,
                 t.category,
-                c.completed_at,
-                c.certificate_id,
-                c.verification_code
+                e.updated_at as completed_at,
+                e.id::text as certificate_id,
+                SUBSTRING(e.id::text, 1, 8) as verification_code,
+                e.enrollment_status
             FROM enrollments e
             JOIN users u ON e.user_id = u.id
             JOIN trainings t ON e.training_id = t.id
-            LEFT JOIN completions c ON e.id = c.enrollment_id
             WHERE e.id = :enrollment_id
         """),
         {"enrollment_id": str(enrollment_id)}
@@ -38,6 +38,10 @@ async def get_certificate(
     row = result.first()
     if not row:
         raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    # Check if enrollment is completed
+    if row.enrollment_status != 'completed':
+        raise HTTPException(status_code=400, detail="Training not yet completed")
     
     # Determine certificate template based on category
     # Patricia's requirements: Only 2 templates

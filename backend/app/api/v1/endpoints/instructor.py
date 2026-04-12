@@ -5,7 +5,8 @@ from typing import List
 import uuid, secrets, string
 from app.db.session import get_db
 from app.models.user import User
-from app.models.training import Enrollment, Attendance, Completion, EnrollmentStatus, Training
+from app.models.training import Enrollment, Completion, EnrollmentStatus, Training
+from app.models.attendance import Attendance
 from app.schemas.training import AttendanceCreate, CompletionOut, EnrollmentOut
 from app.services.audit import log_action
 from app.api.v1.deps import require_roles, get_current_user
@@ -25,16 +26,16 @@ async def get_roster(
     current_user: User = Depends(require_roles("Admin", "Instructor")),
 ):
     result = await db.execute(
-        select(Enrollment, User.full_name).join(User, User.id == Enrollment.user_id).where(
+        select(Enrollment, User.full_name, User.email).join(User, User.id == Enrollment.user_id).where(
             Enrollment.training_id == training_id,
-            Enrollment.enrollment_status == EnrollmentStatus.enrolled,
         )
     )
     rows = result.all()
     out = []
-    for enrollment, full_name in rows:
+    for enrollment, full_name, email in rows:
         e = EnrollmentOut.model_validate(enrollment)
         e.participant_name = full_name
+        e.participant_email = email
         out.append(e)
     return out
 

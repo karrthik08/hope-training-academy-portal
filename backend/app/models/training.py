@@ -1,6 +1,6 @@
 import uuid, enum
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey, Text, UniqueConstraint, Integer
+from sqlalchemy import String, DateTime, ForeignKey, Text, UniqueConstraint, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.session import Base
@@ -36,7 +36,11 @@ class Training(Base):
     
     # Media
     video_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    dropbox_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     flyer_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    
+    # Enrollment settings
+    self_enrollment_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     
     # Dates
     start_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -59,6 +63,15 @@ class Training(Base):
     creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
     approved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[approved_by_id])
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="training")
+    assessments: Mapped[list["Assessment"]] = relationship("Assessment", back_populates="training", cascade="all, delete-orphan")
+    comments: Mapped[list["TrainingComment"]] = relationship("TrainingComment", back_populates="training", cascade="all, delete-orphan")
+
+    instructor_manual_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    knowledge_mgmt_folder_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    student_handbook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    student_workbook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    slides_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    qrc_surveys_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
 class Enrollment(Base):
     __tablename__ = "enrollments"
@@ -71,18 +84,7 @@ class Enrollment(Base):
     canceled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     user: Mapped["User"] = relationship("User", back_populates="enrollments")
     training: Mapped["Training"] = relationship("Training", back_populates="enrollments")
-    attendance: Mapped[list["Attendance"]] = relationship("Attendance", back_populates="enrollment")
     completion: Mapped[Optional["Completion"]] = relationship("Completion", back_populates="enrollment", uselist=False)
-
-class Attendance(Base):
-    __tablename__ = "attendances"
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    enrollment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("enrollments.id"))
-    attendance_status: Mapped[str] = mapped_column(String(50), nullable=False)
-    marked_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
-    marked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    enrollment: Mapped["Enrollment"] = relationship("Enrollment", back_populates="attendance")
-    marker: Mapped["User"] = relationship("User", foreign_keys=[marked_by])
 
 class Completion(Base):
     __tablename__ = "completions"

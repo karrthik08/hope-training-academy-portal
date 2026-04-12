@@ -1,0 +1,26 @@
+// Add this helper function at the top of CourseView component (after the imports, before the component):
+
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  
+  // Extract video ID from various YouTube URL formats
+  let videoId = null;
+  
+  // Format: https://www.youtube.com/watch?v=VIDEO_ID
+  if (url.includes('youtube.com/watch?v=')) {
+    videoId = url.split('watch?v=')[1].split('&')[0];
+  }
+  // Format: https://youtu.be/VIDEO_ID
+  else if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1].split('?')[0];
+  }
+  // Format: https://www.youtube.com/embed/VIDEO_ID
+  else if (url.includes('youtube.com/embed/')) {
+    videoId = url.split('embed/')[1].split('?')[0];
+  }
+  
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+};
+
+// Then in the render, replace the iframe src line with:
+src={getYouTubeEmbedUrl(item.content_url)}

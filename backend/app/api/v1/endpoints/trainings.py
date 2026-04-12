@@ -26,6 +26,18 @@ async def list_all_trainings(
     result = await db.execute(select(Training))
     return result.scalars().all()
 
+@router.get("/{training_id}", response_model=TrainingOut)
+async def get_training(
+    training_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a single training by ID"""
+    training = await db.get(Training, training_id)
+    if not training:
+        raise HTTPException(status_code=404, detail="Training not found")
+    return training
+
 @router.post("/", response_model=TrainingOut, status_code=201)
 async def create_training(
     payload: TrainingCreate,

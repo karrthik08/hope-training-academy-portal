@@ -1,0 +1,8 @@
+
+# Add these imports at the top of app/api/v1/router.py
+from app.api.v1.endpoints import modules, lessons, content_items
+
+# Add these routes in the router setup section
+api_router.include_router(modules.router, prefix="/modules", tags=["Modules"])
+api_router.include_router(lessons.router, prefix="/lessons", tags=["Lessons"])
+api_router.include_router(content_items.router, prefix="/content-items", tags=["Content Items"])

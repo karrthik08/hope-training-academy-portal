@@ -1,4 +1,6 @@
 import React from 'react'
+import NotificationBell from '../components/NotificationBell'
+import HelpSupport from '../components/HelpSupport'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
@@ -27,7 +29,7 @@ export default function MainLayout() {
       <div style={{ backgroundColor: '#CC0000' }} className="text-white text-xs py-1.5">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-3">
-            <span className="font-semibold tracking-wide">✉️ Info@organizationofhope.org</span>
+            <span className="font-semibold tracking-wide">✉️ oohtraining@organizationofhope.org</span>
             <span className="opacity-50">|</span>
             <span>📞 1.855.966.4467 / 443.449.6018</span>
           </div>
@@ -110,7 +112,7 @@ export default function MainLayout() {
             <Link to="/" className="hover:underline">Trainings</Link>
             
             {user && user.roles.includes("Participant") && (
-              <Link to="/onboarding" className="hover:underline">Pre-Onboarding</Link>
+              <Link to="/onboarding" className="hover:underline">OOH Pre-Onboarding</Link>
             )}
             
             {dash && (
@@ -125,6 +127,7 @@ export default function MainLayout() {
             
             {user ? (
               <>
+                <NotificationBell />
                 <span style={{ color: '#FFC72C' }}>Hi, {user.full_name.split(' ')[0]}</span>
                 <button
                   onClick={handleLogout}
@@ -133,6 +136,7 @@ export default function MainLayout() {
                 >
                   Logout
                 </button>
+                <HelpSupport />
               </>
             ) : (
               <>
@@ -171,7 +175,7 @@ export default function MainLayout() {
               </div>
             </div>
             <div className="text-xs text-center" style={{ color: '#93C5FD' }}>
-              <div>📞 1.855.966.4467 &nbsp;|&nbsp; ✉️ Info@organizationofhope.org</div>
+              <div>📞 1.855.966.4467 &nbsp;|&nbsp; ✉️ oohtraining@organizationofhope.org</div>
               <div className="mt-1">218 E Lexington St, Suite 600, Baltimore, MD 21202</div>
             </div>
             <div className="text-xs" style={{ color: '#93C5FD' }}>

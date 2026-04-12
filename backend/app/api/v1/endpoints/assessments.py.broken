@@ -1,0 +1,413 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session, selectinload
+from typing import List
+from uuid import UUID
+
+from app.db.session import get_db
+from app.api.v1.deps import require_roles, get_current_user
+from app.models.assessment import Assessment
+from app.models.question import Question
+from app.models.question_option import QuestionOption
+from app.models.assessment_attempt import AssessmentAttempt
+from app.models.participant_response import ParticipantResponse
+from app.models.user import User
+from app.schemas.assessment import (
+    AssessmentCreate,
+    AssessmentUpdate,
+    AssessmentResponse,
+    AssessmentWithAttempts,
+    QuestionCreate,
+    QuestionUpdate,
+    QuestionResponse,
+    AssessmentAttemptCreate,
+    AssessmentAttemptSubmit,
+    AssessmentAttemptResponse,
+    ParticipantResponseCreate,
+    ParticipantResponseResponse,
+    AssessmentResults
+)
+
+router = APIRouter()
+
+# ============ ASSESSMENT ENDPOINTS ============
+
+@router.post("/", response_model=AssessmentResponse, status_code=status.HTTP_201_CREATED)
+def create_assessment(
+    assessment: AssessmentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Instructor", "Admin"))
+):
+    """Create a new assessment (Instructor/Admin only)"""
+    db_assessment = Assessment(
+        **assessment.model_dump(),
+        created_by=current_user.id
+    )
+    db.add(db_assessment)
+    db.commit()
+    db.refresh(db_assessment)
+    return db_assessment
+
+@router.get("/training/{training_id}", response_model=List[AssessmentResponse])
+def get_assessments_by_training(
+    training_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all assessments for a training"""
+    assessments = db.query(Assessment).filter(
+        Assessment.training_id == training_id
+    ).options(
+        selectinload(Assessment.questions).selectinload(Question.options)
+    ).order_by(Assessment.order_index).all()
+    return assessments
+
+@router.get("/{assessment_id}", response_model=AssessmentResponse)
+def get_assessment(
+    assessment_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single assessment by ID"""
+    assessment = db.query(Assessment).options(
+        selectinload(Assessment.questions).selectinload(Question.options)
+    ).filter(Assessment.id == assessment_id).first()
+    
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    return assessment
+
+@router.get("/{assessment_id}/with-attempts", response_model=AssessmentWithAttempts)
+def get_assessment_with_attempts(
+    assessment_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get assessment with user's attempt history"""
+    assessment = db.query(Assessment).options(
+        selectinload(Assessment.questions).selectinload(Question.options)
+    ).filter(Assessment.id == assessment_id).first()
+    
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    # Get user's attempts
+    user_attempts = db.query(AssessmentAttempt).filter(
+        AssessmentAttempt.assessment_id == assessment_id,
+        AssessmentAttempt.user_id == current_user.id
+    ).order_by(AssessmentAttempt.attempt_number).all()
+    
+    # Calculate remaining attempts
+    attempts_used = len(user_attempts)
+    remaining_attempts = max(0, assessment.max_attempts - attempts_used) if assessment.max_attempts else 999
+    
+    result = AssessmentWithAttempts(
+        **assessment.__dict__,
+        user_attempts=user_attempts,
+        remaining_attempts=remaining_attempts
+    )
+    return result
+
+@router.put("/{assessment_id}", response_model=AssessmentResponse)
+def update_assessment(
+    assessment_id: UUID,
+    assessment_update: AssessmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Instructor", "Admin"))
+):
+    """Update an assessment (Instructor/Admin only)"""
+    db_assessment = db.query(Assessment).filter(Assessment.id == assessment_id).first()
+    if not db_assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    update_data = assessment_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_assessment, field, value)
+    
+    db.commit()
+    db.refresh(db_assessment)
+    return db_assessment
+
+@router.delete("/{assessment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_assessment(
+    assessment_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Instructor", "Admin"))
+):
+    """Delete an assessment (Instructor/Admin only)"""
+    db_assessment = db.query(Assessment).filter(Assessment.id == assessment_id).first()
+    if not db_assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    db.delete(db_assessment)
+    db.commit()
+    return None
+
+# ============ QUESTION ENDPOINTS ============
+
+@router.post("/questions/", response_model=QuestionResponse, status_code=status.HTTP_201_CREATED)
+def create_question(
+    question: QuestionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Instructor", "Admin"))
+):
+    """Create a new question (Instructor/Admin only)"""
+    # Create question
+    question_data = question.model_dump(exclude={'options'})
+    db_question = Question(**question_data)
+    db.add(db_question)
+    db.flush()
+    
+    # Create options if provided
+    if question.options:
+        for option_data in question.options:
+            db_option = QuestionOption(
+                **option_data.model_dump(),
+                question_id=db_question.id
+            )
+            db.add(db_option)
+    
+    db.commit()
+    db.refresh(db_question)
+    return db_question
+
+@router.get("/questions/{question_id}", response_model=QuestionResponse)
+def get_question(
+    question_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single question by ID"""
+    question = db.query(Question).options(
+        selectinload(Question.options)
+    ).filter(Question.id == question_id).first()
+    
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return question
+
+@router.put("/questions/{question_id}", response_model=QuestionResponse)
+def update_question(
+    question_id: UUID,
+    question_update: QuestionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Instructor", "Admin"))
+):
+    """Update a question (Instructor/Admin only)"""
+    db_question = db.query(Question).filter(Question.id == question_id).first()
+    if not db_question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    update_data = question_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_question, field, value)
+    
+    db.commit()
+    db.refresh(db_question)
+    return db_question
+
+@router.delete("/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_question(
+    question_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Instructor", "Admin"))
+):
+    """Delete a question (Instructor/Admin only)"""
+    db_question = db.query(Question).filter(Question.id == question_id).first()
+    if not db_question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    db.delete(db_question)
+    db.commit()
+    return None
+
+# ============ ATTEMPT & RESPONSE ENDPOINTS ============
+
+@router.post("/attempts/start", response_model=AssessmentAttemptResponse)
+def start_assessment_attempt(
+    attempt: AssessmentAttemptCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Start a new assessment attempt"""
+    # Check if user has remaining attempts
+    assessment = db.query(Assessment).filter(Assessment.id == attempt.assessment_id).first()
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    existing_attempts = db.query(AssessmentAttempt).filter(
+        AssessmentAttempt.assessment_id == attempt.assessment_id,
+        AssessmentAttempt.user_id == current_user.id
+    ).count()
+    
+    if assessment.max_attempts and existing_attempts >= assessment.max_attempts:
+        raise HTTPException(status_code=400, detail="Maximum attempts exceeded")
+    
+    # Create new attempt
+    db_attempt = AssessmentAttempt(
+        assessment_id=attempt.assessment_id,
+        user_id=current_user.id,
+        enrollment_id=attempt.enrollment_id,
+        attempt_number=existing_attempts + 1
+    )
+    db.add(db_attempt)
+    db.commit()
+    db.refresh(db_attempt)
+    return db_attempt
+
+@router.post("/attempts/{attempt_id}/submit", response_model=AssessmentAttemptResponse)
+def submit_assessment_attempt(
+    attempt_id: UUID,
+    submission: AssessmentAttemptSubmit,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Submit an assessment attempt with responses"""
+    # Get the attempt
+    db_attempt = db.query(AssessmentAttempt).filter(
+        AssessmentAttempt.id == attempt_id,
+        AssessmentAttempt.user_id == current_user.id
+    ).first()
+    
+    if not db_attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    
+    if db_attempt.submitted_at:
+        raise HTTPException(status_code=400, detail="Attempt already submitted")
+    
+    # Get assessment and questions
+    assessment = db.query(Assessment).options(
+        selectinload(Assessment.questions).selectinload(Question.options)
+    ).filter(Assessment.id == db_attempt.assessment_id).first()
+    
+    total_points = 0
+    points_earned = 0
+    
+    # Save responses and calculate score
+    for response_data in submission.responses:
+        question = db.query(Question).options(
+            selectinload(Question.options)
+        ).filter(Question.id == response_data.question_id).first()
+        
+        if not question:
+            continue
+        
+        total_points += question.points
+        
+        # Auto-grade if possible
+        is_correct = None
+        earned = 0
+        
+        if question.question_type == "multiple_choice":
+            if response_data.selected_option_id:
+                option = db.query(QuestionOption).filter(
+                    QuestionOption.id == response_data.selected_option_id
+                ).first()
+                is_correct = option.is_correct if option else False
+                earned = question.points if is_correct else 0
+        
+        elif question.question_type == "true_false":
+            if response_data.response_text and question.correct_answer:
+                is_correct = response_data.response_text.lower() == question.correct_answer.lower()
+                earned = question.points if is_correct else 0
+        
+        points_earned += earned
+        
+        # Create response record
+        db_response = ParticipantResponse(
+            assessment_id=db_attempt.assessment_id,
+            question_id=response_data.question_id,
+            user_id=current_user.id,
+            enrollment_id=response_data.enrollment_id,
+            response_text=response_data.response_text,
+            selected_option_id=response_data.selected_option_id,
+            is_correct=is_correct,
+            points_earned=earned,
+            attempt_number=db_attempt.attempt_number
+        )
+        db.add(db_response)
+    
+    # Update attempt with results
+    from datetime import datetime
+    score = (points_earned / total_points * 100) if total_points > 0 else 0
+    passed = score >= assessment.passing_score
+    
+    db_attempt.submitted_at = datetime.utcnow()
+    db_attempt.score = score
+    db_attempt.total_points = total_points
+    db_attempt.points_earned = points_earned
+    db_attempt.passed = passed
+    db_attempt.time_spent_seconds = submission.time_spent_seconds
+    
+    db.commit()
+    db.refresh(db_attempt)
+    return db_attempt
+
+@router.get("/attempts/{attempt_id}/responses", response_model=List[ParticipantResponseResponse])
+def get_attempt_responses(
+    attempt_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all responses for an attempt"""
+    attempt = db.query(AssessmentAttempt).filter(
+        AssessmentAttempt.id == attempt_id
+    ).first()
+    
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    
+    # Check access (user's own attempt or instructor/admin)
+    if attempt.user_id != current_user.id and current_user.role not in ["Instructor", "Admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    responses = db.query(ParticipantResponse).filter(
+        ParticipantResponse.assessment_id == attempt.assessment_id,
+        ParticipantResponse.user_id == attempt.user_id,
+        ParticipantResponse.attempt_number == attempt.attempt_number
+    ).all()
+    
+    return responses
+
+@router.get("/{assessment_id}/results", response_model=AssessmentResults)
+def get_assessment_results(
+    assessment_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("Instructor", "Admin"))
+):
+    """Get assessment results for all participants (Instructor/Admin only)"""
+    assessment = db.query(Assessment).options(
+        selectinload(Assessment.questions).selectinload(Question.options)
+    ).filter(Assessment.id == assessment_id).first()
+    
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    # Get all attempts
+    attempts = db.query(AssessmentAttempt).filter(
+        AssessmentAttempt.assessment_id == assessment_id,
+        AssessmentAttempt.submitted_at.isnot(None)
+    ).all()
+    
+    # Get all responses
+    responses = db.query(ParticipantResponse).filter(
+        ParticipantResponse.assessment_id == assessment_id
+    ).all()
+    
+    # Calculate statistics
+    total_participants = len(set(a.user_id for a in attempts))
+    completed_count = len(attempts)
+    
+    scores = [a.score for a in attempts if a.score is not None]
+    average_score = sum(scores) / len(scores) if scores else None
+    
+    passed_count = sum(1 for a in attempts if a.passed)
+    pass_rate = (passed_count / len(attempts) * 100) if attempts else None
+    
+    return AssessmentResults(
+        assessment=assessment,
+        total_participants=total_participants,
+        completed_count=completed_count,
+        average_score=average_score,
+        pass_rate=pass_rate,
+        responses=responses
+    )
