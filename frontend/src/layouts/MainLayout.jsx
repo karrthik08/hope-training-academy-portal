@@ -14,7 +14,7 @@ export default function MainLayout() {
   }
 
   const dashboardLink = () => {
-    if (!user) return null
+    if (!user || !user.roles) return null
     if (user.roles.includes('Admin'))      return { to: '/admin',      label: 'Admin Panel' }
     if (user.roles.includes('Instructor')) return { to: '/instructor', label: 'Instructor' }
     return { to: '/dashboard', label: 'My Trainings' }
@@ -111,7 +111,7 @@ export default function MainLayout() {
           <div className="flex items-center gap-4 text-sm">
             <Link to="/" className="hover:underline">Trainings</Link>
             
-            {user && user.roles.includes("Participant") && (
+            {user && user.roles && user.roles.includes("Participant") && (
               <Link to="/onboarding" className="hover:underline">OOH Pre-Onboarding</Link>
             )}
             
