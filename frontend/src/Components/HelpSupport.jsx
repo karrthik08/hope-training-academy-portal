@@ -18,14 +18,19 @@ const HelpSupport = () => {
     setSubmitMessage({ type: '', text: '' });
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/support/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       const data = await response.json();
 
       if (response.ok) {
@@ -35,7 +40,6 @@ const HelpSupport = () => {
         });
         setFormData({ name: '', email: '', subject: '', message: '' });
         
-        // Close modal after 3 seconds
         setTimeout(() => {
           setIsOpen(false);
           setSubmitMessage({ type: '', text: '' });
@@ -47,10 +51,17 @@ const HelpSupport = () => {
         });
       }
     } catch (error) {
-      setSubmitMessage({
-        type: 'error',
-        text: 'Network error. Please check your connection or contact us directly at oohtraining@organizationofhope.org'
-      });
+      if (error.name === 'AbortError') {
+        setSubmitMessage({
+          type: 'error',
+          text: 'Request timeout. Please try again or contact us directly at oohtraining@organizationofhope.org'
+        });
+      } else {
+        setSubmitMessage({
+          type: 'error',
+          text: 'Network error. Please check your connection or contact us directly at oohtraining@organizationofhope.org'
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -65,7 +76,6 @@ const HelpSupport = () => {
 
   return (
     <>
-      {/* Need Support Button - Styled to match Logout button */}
       <button
         onClick={() => setIsOpen(true)}
         className="px-3 py-1 rounded font-medium text-sm"
@@ -75,7 +85,6 @@ const HelpSupport = () => {
         Need Support
       </button>
 
-      {/* Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -146,7 +155,6 @@ const HelpSupport = () => {
                     </p>
                   </div>
 
-                  {/* Success/Error Message */}
                   {submitMessage.text && (
                     <div
                       className={`p-4 rounded mb-4 ${
@@ -171,7 +179,7 @@ const HelpSupport = () => {
                         onChange={handleChange}
                         required
                         disabled={isSubmitting}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100 text-gray-900 bg-white"
                         style={{ focusRingColor: '#003087' }}
                       />
                     </div>
@@ -187,7 +195,7 @@ const HelpSupport = () => {
                         onChange={handleChange}
                         required
                         disabled={isSubmitting}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100"
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100 text-gray-900 bg-white"
                       />
                     </div>
 
@@ -201,8 +209,7 @@ const HelpSupport = () => {
                         onChange={handleChange}
                         required
                         disabled={isSubmitting}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100 bg-white"
-                        style={{ color: '#000', appearance: 'menulist' }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100 bg-white text-gray-900"
                       >
                         <option value="">Select a subject</option>
                         <option value="Enrollment Issue">Enrollment Issue</option>
@@ -226,8 +233,8 @@ const HelpSupport = () => {
                         disabled={isSubmitting}
                         rows="5"
                         placeholder="Please describe your issue or question..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100 bg-white"
-                        style={{ color: '#000', resize: 'vertical' }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 disabled:bg-gray-100 bg-white text-gray-900"
+                        style={{ resize: 'vertical' }}
                       />
                     </div>
 
