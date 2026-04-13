@@ -4,8 +4,8 @@ import { register } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 
 export default function RegisterPage() {
-  const [form, setForm]       = useState({ full_name: '', email: '', password: '' })
-  const [error, setError]     = useState('')
+  const [form, setForm] = useState({ full_name: '', email: '', password: '' })
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
@@ -15,12 +15,20 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
     try {
-      const data = await register(form.full_name, form.email, form.password)
-      setAuth(data.access_token, {
-        user_id:   data.user_id,
-        full_name: data.full_name,
-        roles:     data.roles,
+      const response = await register({
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        role: 'participant'
       })
+      
+      const data = response.data
+      setAuth(data.access_token, {
+        user_id: data.user_id,
+        full_name: data.full_name,
+        roles: data.roles,
+      })
+      
       navigate('/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed')
