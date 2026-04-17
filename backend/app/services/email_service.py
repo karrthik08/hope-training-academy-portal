@@ -1,122 +1,146 @@
-import os
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import smtplib
-from datetime import datetime
-from typing import Dict
-import os
+from app.core.config import settings
+import logging
 
-class EmailService:
-    def __init__(self):
-        # Email configuration - these should be set in environment variables
-        self.smtp_server = "smtp.sendgrid.net"
-        self.smtp_port = 587
-        self.smtp_username = "apikey"
-        self.smtp_password = os.getenv("SENDGRID_API_KEY", "")
-        self.from_email = "karrthikburugupally@gmail.com"
-        self.support_email = "oohtraining@organizationofhope.org"
-    
-    def send_support_request(self, form_data: Dict[str, str]) -> bool:
-        """
-        Send support request email to oohtraining@organizationofhope.org
+logger = logging.getLogger(__name__)
 
-        Args:
-            form_data: Dictionary containing name, email, subject, message
+async def send_notification_email(subject: str, body: str, to_email: str = None):
+    """
+    Send notification email to oohtraining@organizationofhope.org
+    """
+    try:
+        recipient = to_email if to_email else settings.SUPPORT_EMAIL
+        
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = settings.FROM_EMAIL
+        msg['To'] = recipient
+        
+        html_part = MIMEText(body, 'html')
+        msg.attach(html_part)
+        
+        with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT) as server:
+            server.starttls()
+            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+            server.send_message(msg)
             
-        Returns:
-            bool: True if email sent successfully, False otherwise
-        """
-        try:
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = f"HOPE Training Portal Support: {form_data['subject']}"
-            msg['From'] = self.from_email
-            msg['To'] = self.support_email
-            msg['Reply-To'] = form_data['email']
-            
-            # Create HTML body
-            html_body = f"""
-            <html>
-                <head>
-                    <style>
-                        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                        .header {{ background-color: #003087; color: white; padding: 20px; text-align: center; }}
-                        .content {{ padding: 20px; background-color: #f9f9f9; }}
-                        .info-box {{ background-color: white; border-left: 4px solid #CC0000; padding: 15px; margin: 10px 0; }}
-                        .label {{ font-weight: bold; color: #003087; }}
-                        .message-box {{ background-color: white; padding: 15px; margin: 15px 0; border: 1px solid #ddd; }}
-                        .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h2>HOPE Training Academy Portal - Support Request</h2>
-                    </div>
-                    <div class="content">
-                        <div class="info-box">
-                            <p><span class="label">From:</span> {form_data['name']}</p>
-                            <p><span class="label">Email:</span> {form_data['email']}</p>
-                            <p><span class="label">Subject:</span> {form_data['subject']}</p>
-                            <p><span class="label">Date:</span> {datetime.now().strftime("%B %d, %Y at %I:%M %p EST")}</p>
-                        </div>
-                        
-                        <div class="message-box">
-                            <p class="label">Message:</p>
-                            <p>{form_data['message'].replace(chr(10), '<br>')}</p>
-                        </div>
-                    </div>
-                    <div class="footer">
-                        <p>This email was sent from the HOPE Training Academy Portal support system.</p>
-                        <p>Bridging Hope, Inc. dba Organization of Hope</p>
-                    </div>
-                </body>
-            </html>
-            """
-            
-            # Create plain text version
-            text_body = f"""
-HOPE Training Academy Portal - Support Request
+        logger.info(f"Email sent successfully to {recipient}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email: {str(e)}")
+        return False
 
-From: {form_data['name']}
-Email: {form_data['email']}
-Subject: {form_data['subject']}
-Date: {datetime.now().strftime("%B %d, %Y at %I:%M %p EST")}
 
-Message:
-{form_data['message']}
+async def notify_new_registration(user_email: str, user_name: str, role: str):
+    """Notify admin of new user registration"""
+    subject = f"New User Registration - {role}"
+    body = f"""
+    <html>
+        <body>
+            <h2>New User Registered</h2>
+            <p><strong>Name:</strong> {user_name}</p>
+            <p><strong>Email:</strong> {user_email}</p>
+            <p><strong>Role:</strong> {role}</p>
+            <p><strong>Portal:</strong> <a href="https://hope-frontend-qm4p.onrender.com">HOPE Training Portal</a></p>
+        </body>
+    </html>
+    """
+    await send_notification_email(subject, body)
 
----
-This email was sent from the HOPE Training Academy Portal support system.
-Bridging Hope, Inc. dba Organization of Hope
-            """
-            
-            # Attach both HTML and plain text versions
-            part1 = MIMEText(text_body, 'plain')
-            part2 = MIMEText(html_body, 'html')
-            msg.attach(part1)
-            msg.attach(part2)
-            
-            # Send email
-            print(f"📧 Attempting to send email to {self.support_email} via {self.smtp_server}")
-            print(f"📧 Using FROM: {self.from_email}")
-            print(f"📧 SMTP Username: {self.smtp_username}")
-            
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.set_debuglevel(1)  # Enable debug output
-                server.starttls()
-                if self.smtp_username and self.smtp_password:
-                    print(f"📧 Logging in with username: {self.smtp_username}")
-                    server.login(self.smtp_username, self.smtp_password)
-                server.send_message(msg)
-            
-            print(f"✅ Support email sent successfully to {self.support_email}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error sending support email: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return False
 
-# Create singleton instance
-email_service = EmailService()
+async def notify_training_enrollment(user_name: str, user_email: str, training_title: str):
+    """Notify admin of training enrollment"""
+    subject = f"New Training Enrollment - {training_title}"
+    body = f"""
+    <html>
+        <body>
+            <h2>New Training Enrollment</h2>
+            <p><strong>User:</strong> {user_name} ({user_email})</p>
+            <p><strong>Training:</strong> {training_title}</p>
+        </body>
+    </html>
+    """
+    await send_notification_email(subject, body)
+
+
+async def notify_training_completion(user_name: str, user_email: str, training_title: str, certificate_id: str):
+    """Notify admin of training completion"""
+    subject = f"Training Completed - {training_title}"
+    body = f"""
+    <html>
+        <body>
+            <h2>Training Completed</h2>
+            <p><strong>User:</strong> {user_name} ({user_email})</p>
+            <p><strong>Training:</strong> {training_title}</p>
+            <p><strong>Certificate ID:</strong> {certificate_id}</p>
+        </body>
+    </html>
+    """
+    await send_notification_email(subject, body)
+
+
+async def notify_course_submitted_for_review(instructor_name: str, course_title: str, course_id: int):
+    """Notify admin when instructor submits course for review"""
+    subject = f"Course Submitted for Review - {course_title}"
+    body = f"""
+    <html>
+        <body>
+            <h2>Course Submitted for Review</h2>
+            <p><strong>Instructor:</strong> {instructor_name}</p>
+            <p><strong>Course:</strong> {course_title}</p>
+            <p><strong>Action Required:</strong> Please review and approve/reject this course</p>
+            <p><a href="https://hope-frontend-qm4p.onrender.com/admin">Review in Admin Dashboard</a></p>
+        </body>
+    </html>
+    """
+    await send_notification_email(subject, body)
+
+
+async def notify_course_approved(course_title: str, instructor_email: str):
+    """Notify instructor when their course is approved"""
+    subject = f"Course Approved - {course_title}"
+    body = f"""
+    <html>
+        <body>
+            <h2>Your Course Has Been Approved</h2>
+            <p><strong>Course:</strong> {course_title}</p>
+            <p>Your course has been approved and is now published.</p>
+        </body>
+    </html>
+    """
+    await send_notification_email(subject, body, instructor_email)
+
+
+async def notify_support_request(name: str, email: str, subject: str, message: str):
+    """Forward support request to admin"""
+    email_subject = f"Support Request - {subject}"
+    body = f"""
+    <html>
+        <body>
+            <h2>New Support Request</h2>
+            <p><strong>From:</strong> {name} ({email})</p>
+            <p><strong>Subject:</strong> {subject}</p>
+            <p><strong>Message:</strong></p>
+            <p>{message}</p>
+        </body>
+    </html>
+    """
+    await send_notification_email(email_subject, body)
+
+
+async def notify_assignment_submission(user_name: str, user_email: str, training_title: str, assignment_title: str):
+    """Notify admin of assignment submission"""
+    subject = f"Assignment Submitted - {assignment_title}"
+    body = f"""
+    <html>
+        <body>
+            <h2>New Assignment Submission</h2>
+            <p><strong>User:</strong> {user_name} ({user_email})</p>
+            <p><strong>Training:</strong> {training_title}</p>
+            <p><strong>Assignment:</strong> {assignment_title}</p>
+        </body>
+    </html>
+    """
+    await send_notification_email(subject, body)

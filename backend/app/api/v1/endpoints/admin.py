@@ -11,117 +11,18 @@ from app.api.v1.deps import require_roles
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-@router.get("/reports/roster/{training_id}")
-async def roster_report(
-    training_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("Admin")),
-):
-    result = await db.execute(select(Enrollment).where(Enrollment.training_id == training_id))
-    enrollments = result.scalars().all()
-    return [{"enrollment_id": str(e.id), "user_id": str(e.user_id), "status": e.enrollment_status, "enrolled_at": e.enrolled_at.isoformat()} for e in enrollments]
-
-@router.get("/reports/completions/{training_id}")
-async def completion_report(
-    training_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("Admin")),
-):
-    result = await db.execute(
-        select(Completion, User.full_name)
-        .join(Enrollment, Enrollment.id == Completion.enrollment_id)
-        .join(User, User.id == Enrollment.user_id)
-        .where(Enrollment.training_id == training_id)
-    )
-    rows = result.all()
-    data = []
-    for comp, full_name in rows:
-        data.append({
-            "id": str(comp.id),
-            "participant_name": full_name,
-            "certificate_id": comp.certificate_id,
-            "verification_code": comp.verification_code,
-            "completed_at": comp.completed_at.isoformat() if comp.completed_at else None,
-        })
-    return data
-
-@router.get("/audit-logs", response_model=List[AuditLogOut])
-async def list_audit_logs(
-    skip: int = 0, limit: int = 100,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("Admin")),
-):
-    result = await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()).offset(skip).limit(limit))
-    return result.scalars().all()
-@router.get("/stats/enrollments")
-async def get_enrollment_stats(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("Admin")),
-):
-    """Get enrollment statistics for admin dashboard"""
-    
-    # Total enrollments
-    total_enrollments_result = await db.execute(
-        text("SELECT COUNT(*) as count FROM enrollments")
-    )
-    total_enrollments = total_enrollments_result.scalar()
-    
-    # Active enrollments (status = enrolled)
-    active_enrollments_result = await db.execute(
-        text("SELECT COUNT(*) as count FROM enrollments WHERE enrollment_status = 'enrolled'")
-    )
-    active_enrollments = active_enrollments_result.scalar()
-    
-    # Completed enrollments
-    completed_enrollments_result = await db.execute(
-        text("SELECT COUNT(*) as count FROM enrollments WHERE enrollment_status = 'completed'")
-    )
-    completed_enrollments = completed_enrollments_result.scalar()
-    
-    # Unique active participants
-    active_participants_result = await db.execute(
-        text("SELECT COUNT(DISTINCT user_id) as count FROM enrollments WHERE enrollment_status = 'enrolled'")
-    )
-    active_participants = active_participants_result.scalar()
-    
-    # Completion rate
-    completion_rate = 0
-    if total_enrollments > 0:
-        completion_rate = round((completed_enrollments / total_enrollments) * 100, 1)
-    
-    # Enrollments by category
-    category_stats_result = await db.execute(
-        text("""
-            SELECT t.category, COUNT(e.id) as enrollment_count
-            FROM enrollments e
-            JOIN trainings t ON e.training_id = t.id
-            WHERE t.category IS NOT NULL
-            GROUP BY t.category
-            ORDER BY enrollment_count DESC
-            LIMIT 5
-        """)
-    )
-    category_stats = [{"category": row.category, "count": row.enrollment_count} 
-                     for row in category_stats_result]
-    
-    return {
-        "total_enrollments": total_enrollments,
-        "active_enrollments": active_enrollments,
-        "completed_enrollments": completed_enrollments,
-        "active_participants": active_participants,
-        "completion_rate": completion_rate,
-        "category_breakdown": category_stats
-    }
-
 @router.get("/metrics")
 async def get_metrics(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles("Admin"))
 ):
-    """Get admin dashboard metrics"""
-    from sqlalchemy import func, select
-    from app.models.training import Training, Enrollment, EnrollmentStatus
+    """Get admin dashboard metrics with drop rate, login frequency, and test pass rates"""
+    from sqlalchemy import func, select, and_, or_, case
+    from app.models.training import Training, Enrollment, EnrollmentStatus, Completion
     from app.models.user import User
+    from app.models.assessment import Assessment
+    from app.models.assessment_attempt import AssessmentAttempt
+    from datetime import datetime, timedelta
     
     # Total trainings
     total_trainings = await db.scalar(select(func.count(Training.id)))
@@ -140,7 +41,6 @@ async def get_metrics(
     )
     completion_rate = round((completed / total_enrollments * 100) if total_enrollments > 0 else 0, 1)
     
-    # Popular trainings
     popular_trainings_result = await db.execute(
         select(
             Training.id,
@@ -156,8 +56,7 @@ async def get_metrics(
         {"id": str(row[0]), "title": row[1], "enrollments": row[2]}
         for row in popular_trainings_result.all()
     ]
-    
-    # Recent enrollments
+
     recent_enrollments_result = await db.execute(
         select(Enrollment, Training.title, User.email)
         .join(Training, Enrollment.training_id == Training.id)
@@ -175,11 +74,150 @@ async def get_metrics(
         for row in recent_enrollments_result.all()
     ]
     
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    
+    # 1. DROP/WITHDRAWAL RATE
+    withdrawn = await db.scalar(
+        select(func.count(Enrollment.id)).where(
+            Enrollment.enrollment_status.in_(['withdrawn', 'dropped'])
+        )
+    ) or 0
+    drop_rate = round((withdrawn / total_enrollments * 100) if total_enrollments > 0 else 0, 2)
+    
+    # 2. LOGIN FREQUENCY (using enrollment activity as proxy)
+    one_day_ago = datetime.utcnow() - timedelta(days=1)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    
+    daily_active = await db.scalar(
+        select(func.count(func.distinct(Enrollment.user_id))).where(Enrollment.enrolled_at >= one_day_ago)
+    ) or 0
+    
+    weekly_active = await db.scalar(
+        select(func.count(func.distinct(Enrollment.user_id))).where(Enrollment.enrolled_at >= seven_days_ago)
+    ) or 0
+    
+    monthly_active = await db.scalar(
+        select(func.count(func.distinct(Enrollment.user_id))).where(Enrollment.enrolled_at >= thirty_days_ago)
+    ) or 0
+    
+    # 3. TEST PASS RATES
+    total_attempts = await db.scalar(select(func.count(AssessmentAttempt.id))) or 0
+    passed_attempts = await db.scalar(
+        select(func.count(AssessmentAttempt.id)).where(AssessmentAttempt.passed == True)
+    ) or 0
+    overall_pass_rate = round((passed_attempts / total_attempts * 100) if total_attempts > 0 else 0, 2)
+    
+    avg_score = await db.scalar(select(func.avg(AssessmentAttempt.score))) or 0
+    
+    first_attempt_passed = await db.scalar(
+        select(func.count(AssessmentAttempt.id)).where(
+            and_(AssessmentAttempt.attempt_number == 1, AssessmentAttempt.passed == True)
+        )
+    ) or 0
+    
+    first_attempts = await db.scalar(
+        select(func.count(AssessmentAttempt.id)).where(AssessmentAttempt.attempt_number == 1)
+    ) or 0
+    
+    first_attempt_pass_rate = round((first_attempt_passed / first_attempts * 100) if first_attempts > 0 else 0, 2)
+    
     return {
+        # Original metrics
         "totalTrainings": total_trainings or 0,
         "totalUsers": total_users or 0,
         "totalEnrollments": total_enrollments or 0,
         "completionRate": completion_rate,
         "popularTrainings": popular_trainings,
-        "recentActivity": recent_enrollments
+        "recentActivity": recent_enrollments,
+        
+        # New metrics
+        "dropWithdrawalRate": {
+            "total": withdrawn,
+            "percentage": drop_rate
+        },
+        "loginFrequency": {
+            "daily": daily_active,
+            "weekly": weekly_active,
+            "monthly": monthly_active
+        },
+        "testPassRates": {
+            "totalAttempts": total_attempts,
+            "passed": passed_attempts,
+            "overallPassRate": overall_pass_rate,
+            "averageScore": round(float(avg_score), 2) if avg_score else 0,
+            "firstAttemptPassRate": first_attempt_pass_rate
+        }
     }
+
+
+@router.get("/trainings/detailed-metrics")
+async def get_detailed_training_metrics(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("Admin"))
+):
+    """Get detailed metrics for all trainings with enrollment and completion data"""
+    from sqlalchemy import func, select, case
+    from app.models.training import Training, Enrollment, EnrollmentStatus
+    
+    # Query to get training stats
+    query = select(
+        Training.id,
+        Training.title,
+        Training.category,
+        func.count(Enrollment.id).label('enrolled'),
+        func.sum(
+            case(
+                (Enrollment.enrollment_status == EnrollmentStatus.completed, 1),
+                else_=0
+            )
+        ).label('completed')
+    ).outerjoin(
+        Enrollment, Training.id == Enrollment.training_id
+    ).group_by(
+        Training.id, Training.title, Training.category
+    )
+    
+    result = await db.execute(query)
+    trainings_data = []
+    
+    for row in result.all():
+        enrolled = row.enrolled or 0
+        completed = row.completed or 0
+        completion_percentage = round((completed / enrolled * 100) if enrolled > 0 else 0, 1)
+        
+        trainings_data.append({
+            "id": str(row.id),
+            "title": row.title,
+            "category": row.category,
+            "enrolled": enrolled,
+            "completed": completed,
+            "completion_percentage": completion_percentage
+        })
+    
+    return trainings_data
+
+
+@router.get("/audit-logs")
+async def get_audit_logs(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("Admin"))
+):
+    """Get audit logs for admin dashboard"""
+    from sqlalchemy import select
+    from app.models.training import AuditLog
+    
+    query = select(AuditLog).order_by(AuditLog.created_at.desc()).limit(100)
+    result = await db.execute(query)
+    logs = result.scalars().all()
+    
+    return [
+        {
+            "id": str(log.id),
+            "action": log.action,
+            "entity_type": log.entity_type,
+            "entity_id": str(log.entity_id) if log.entity_id else None,
+            "user_id": str(log.actor_user_id) if log.actor_user_id else None,
+            "created_at": log.created_at.isoformat() if log.created_at else None
+        }
+        for log in logs
+    ]

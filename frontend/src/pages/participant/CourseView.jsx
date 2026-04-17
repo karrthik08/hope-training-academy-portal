@@ -21,9 +21,7 @@ const getYouTubeEmbedUrl = (url) => {
 
 const getDropboxEmbedUrl = (url) => {
   if (!url) return null;
-  // Convert Dropbox preview URL to direct download/embed URL
   if (url.includes('dropbox.com')) {
-    // Replace dl=0 with raw=1 for direct access
     return url.replace('dl=0', 'raw=1').replace('www.dropbox.com', 'dl.dropboxusercontent.com');
   }
   return url;
@@ -234,9 +232,9 @@ export default function CourseView() {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <button onClick={() => navigate('/participant')} className="text-blue-600 hover:underline mb-4">
-        ← Back to Dashboard
-      </button>
+      <button onClick={() => navigate('/dashboard')} className="text-blue-600 hover:underline mb-4">
+  ← Back to Dashboard
+</button>
 
       <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
         <h1 className="text-3xl font-bold mb-2">{enrollment.training_title}</h1>
@@ -268,7 +266,7 @@ export default function CourseView() {
         )}
       </div>
 
-      {/* TRAINING VIDEO & MATERIALS SECTION */}
+      {/* TRAINING & MATERIALS SECTION */}
       {training && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-2xl font-semibold mb-4">📹 Training Materials</h2>
@@ -291,7 +289,7 @@ export default function CourseView() {
             </div>
           )}
 
-          {/* Dropbox Video/Document */}
+          {/* Dropbox Video */}
           {training.dropbox_url && (
             <div className="mb-4">
               <h3 className="font-medium text-lg mb-2">Training Video/Document</h3>

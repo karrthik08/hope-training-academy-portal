@@ -14,6 +14,7 @@ from app.schemas.training import EnrollmentOut
 from pydantic import BaseModel
 from app.api.v1.deps import get_current_user, require_roles
 from app.services.audit import log_action
+from app.services.email_service import notify_training_enrollment, notify_training_completion
 
 
 router = APIRouter(prefix="/enrollments", tags=["enrollments"])
@@ -40,9 +41,12 @@ async def bulk_enroll(
     training_id = uuid.UUID(data.get("training_id"))
     results = {"success": [], "failed": []}
     
+    # Get training title once for all notifications
+    training_result = await db.execute(select(Training).where(Training.id == training_id))
+    training = training_result.scalar_one_or_none()
+    
     for email in user_emails:
         try:
-            # Find user
             user_result = await db.execute(
                 select(User).where(User.email == email)
             )
@@ -51,8 +55,6 @@ async def bulk_enroll(
             if not user:
                 results["failed"].append({"email": email, "reason": "User not found"})
                 continue
-            
-            # Check if already enrolled
             existing = await db.execute(
                 select(Enrollment).where(
                     Enrollment.user_id == user.id,
@@ -63,7 +65,6 @@ async def bulk_enroll(
                 results["failed"].append({"email": email, "reason": "Already enrolled"})
                 continue
             
-            # Create enrollment
             enrollment = Enrollment(
                 user_id=user.id,
                 training_id=training_id,
@@ -71,6 +72,14 @@ async def bulk_enroll(
             )
             db.add(enrollment)
             results["success"].append(email)
+            
+            # Send notification email
+            if training:
+                await notify_training_enrollment(
+                    user_name=user.full_name,
+                    user_email=user.email,
+                    training_title=training.title
+                )
             
         except Exception as e:
             results["failed"].append({"email": email, "reason": str(e)})
@@ -93,15 +102,13 @@ async def enroll_by_email(
     
     training_id = uuid.UUID(payload.training_id)
     email = payload.email
-    
-    # Find user by email
+
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
     
     if not user:
         raise HTTPException(status_code=404, detail=f"No user found with email: {email}")
-    
-    # Check if already enrolled
+
     existing = await db.execute(
         select(Enrollment).where(
             Enrollment.user_id == user.id,
@@ -111,6 +118,9 @@ async def enroll_by_email(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="User is already enrolled in this training")
     
+    training_result = await db.execute(select(Training).where(Training.id == training_id))
+    training = training_result.scalar_one_or_none()
+    
     # Create enrollment
     enrollment = Enrollment(
         user_id=user.id,
@@ -119,6 +129,14 @@ async def enroll_by_email(
     )
     db.add(enrollment)
     await db.commit()
+    
+    # Send notification email
+    if training:
+        await notify_training_enrollment(
+            user_name=user.full_name,
+            user_email=user.email,
+            training_title=training.title
+        )
     
     return {"message": "User enrolled successfully", "user_email": email}
 
@@ -150,6 +168,14 @@ async def enroll(
     await log_action(db, current_user.id, "enroll", "Enrollment", str(enrollment.id))
     await db.commit()
     await db.refresh(enrollment)
+    
+    # Send notification email
+    await notify_training_enrollment(
+        user_name=current_user.full_name,
+        user_email=current_user.email,
+        training_title=training.title
+    )
+    
     return enrollment
 
 
@@ -234,6 +260,19 @@ async def complete_by_video(
     )
     await log_action(db, current_user.id, "complete", "Enrollment", str(enrollment.id))
     await db.commit()
+    
+    # Get training title for notification
+    training = await db.get(Training, training_id)
+    
+    # Send notification email
+    if training:
+        await notify_training_completion(
+            user_name=current_user.full_name,
+            user_email=current_user.email,
+            training_title=training.title,
+            certificate_id=cert_id
+        )
+    
     return {"success": True, "enrollment_id": str(enrollment.id), "certificate_id": cert_id}
 
 
@@ -270,7 +309,7 @@ async def get_certificate(
         raise HTTPException(status_code=404, detail="Certificate not found or training not completed")
     
     # Check if enrollment is completed
-    if row[9] != 'completed':  # enrollment_status is at index 9
+    if row[9] != 'completed':  
         raise HTTPException(status_code=400, detail="Training not yet completed")
 
     return {
@@ -340,7 +379,6 @@ async def get_available_users(
     current_user: User = Depends(require_roles("Instructor", "Admin"))
 ):
     """Get users who are not yet enrolled in this training"""
-    # Get all enrolled user IDs
     enrolled_result = await db.execute(
         select(Enrollment.user_id).where(Enrollment.training_id == training_id)
     )
@@ -378,7 +416,6 @@ async def self_enroll(
     current_user: User = Depends(get_current_user)
 ):
     """Self-enroll current user in a training"""
-    # Check if training has self-enrollment enabled
     training_result = await db.execute(
         select(Training).where(Training.id == training_id)
     )
@@ -409,6 +446,13 @@ async def self_enroll(
     db.add(enrollment)
     await db.commit()
     
+    # Send notification email
+    await notify_training_enrollment(
+        user_name=current_user.full_name,
+        user_email=current_user.email,
+        training_title=training.title
+    )
+    
     return {"message": "Successfully enrolled", "training_title": training.title}
 
 @router.delete("/remove/{enrollment_id}")
@@ -417,7 +461,7 @@ async def delete_enrollment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles("Instructor", "Admin"))
 ):
-    """Delete/remove an enrollment"""
+    """Delete remove an enrollment"""
     from sqlalchemy import text
     
     enrollment = await db.get(Enrollment, enrollment_id)
@@ -425,16 +469,11 @@ async def delete_enrollment(
     if not enrollment:
         raise HTTPException(status_code=404, detail="Enrollment not found")
     
-    # Delete related completions first
     await db.execute(
         text("DELETE FROM completions WHERE enrollment_id = :enrollment_id"),
         {"enrollment_id": enrollment_id}
     )
-    
-    # Now delete the enrollment
     await db.delete(enrollment)
     await db.commit()
     
     return {"message": "Enrollment removed successfully"}
-
-

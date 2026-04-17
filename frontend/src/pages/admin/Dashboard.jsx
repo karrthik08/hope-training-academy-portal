@@ -84,7 +84,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        {[['Pending', submitted.length, 'text-purple-600'], ['Approved', trainings.filter(t => t.status === 'approved').length, 'text-blue-600'], ['Published', trainings.filter(t => t.status === 'published').length, 'text-green-600']].map(([l, v, c]) => (
+        {[['Pending', pending.length, 'text-purple-600'], ['Approved', trainings.filter(t => t.status === 'approved').length, 'text-blue-600'], ['Published', trainings.filter(t => t.status === 'published').length, 'text-green-600']].map(([l, v, c]) => (
           <div key={l} className="bg-white rounded-lg shadow p-4 text-center">
             <div className={'text-3xl font-bold '+c}>{v}</div>
             <div className="text-xs text-gray-500 mt-1">{l}</div>

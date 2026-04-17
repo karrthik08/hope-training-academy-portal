@@ -10,6 +10,8 @@ from app.models import training as _training_models  # noqa
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from app.core.security import hash_password, verify_password, create_access_token
 from app.api.v1.deps import get_current_user
+from app.services.email_service import notify_new_registration
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -20,6 +22,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     existing = await db.execute(select(User).where(User.email == payload.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
+    
     user = User(
         full_name=payload.full_name,
         email=payload.email,
@@ -32,6 +35,14 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     if role:
         db.add(UserRole(user_id=user.id, role_id=role.id))
     await db.commit()
+    
+    # Send notification email
+    await notify_new_registration(
+        user_email=user.email,
+        user_name=user.full_name,
+        role="Participant"
+    )
+    
     result = await db.execute(
         select(User).options(selectinload(User.user_roles).selectinload(UserRole.role))
         .where(User.id == user.id)
@@ -40,7 +51,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     roles = [ur.role.name for ur in user.user_roles]
     token = create_access_token(str(user.id), roles)
     return TokenResponse(access_token=token, user_id=str(user.id), full_name=user.full_name, roles=roles)
-
+    
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

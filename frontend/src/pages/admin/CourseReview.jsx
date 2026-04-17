@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getAllTrainings, approveTraining, rejectTraining } from '../../api/client'
 
 export default function CourseReview() {
+  const navigate = useNavigate()
   const [trainings, setTrainings] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -49,6 +51,13 @@ export default function CourseReview() {
 
   return (
     <div>
+      <button
+        onClick={() => navigate('/admin')}
+        className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 flex items-center gap-2 mb-4"
+      >
+        ← Back to Admin Dashboard
+      </button>
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Course Review Queue</h1>
         <p className="text-gray-500 text-sm mt-1">Review and approve courses submitted by instructors</p>

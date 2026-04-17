@@ -63,6 +63,53 @@ async def get_training_summary(
         "status": training.status
     }
 
+
+@router.get("/completion/{training_id}")
+async def get_completion_report(
+    training_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles("Admin", "Instructor"))
+):
+    """Get completion report data for a specific training (JSON format for display)"""
+    from app.models.training import Completion
+    
+    # Get all completions for this training
+    query = select(
+        User.id,
+        User.full_name,
+        Enrollment.enrolled_at,
+        Completion.completed_at,
+        Completion.certificate_id,
+        Completion.verification_code
+    ).select_from(
+        Enrollment
+    ).join(
+        User, Enrollment.user_id == User.id
+    ).join(
+        Completion, Enrollment.id == Completion.enrollment_id
+    ).where(
+        and_(
+            Enrollment.training_id == training_id,
+            Enrollment.enrollment_status == EnrollmentStatus.completed
+        )
+    ).order_by(Completion.completed_at.desc())
+    
+    result = await db.execute(query)
+    completions = []
+    
+    for row in result.all():
+        completions.append({
+            "user_id": str(row.id),
+            "participant_name": row.full_name,
+            "enrolled_at": row.enrolled_at.isoformat() if row.enrolled_at else None,
+            "completed_at": row.completed_at.isoformat() if row.completed_at else None,
+            "certificate_id": row.certificate_id,
+            "verification_code": row.verification_code
+        })
+    
+    return completions
+
+    
 @router.get("/training/{training_id}/attendance-export")
 async def export_attendance_report(
     training_id: UUID,
@@ -71,7 +118,7 @@ async def export_attendance_report(
 ):
     """Export attendance report as CSV"""
     
-    # Get training info
+ 
     training_result = await db.execute(
         select(Training).where(Training.id == training_id)
     )
@@ -79,7 +126,7 @@ async def export_attendance_report(
     if not training:
         raise HTTPException(status_code=404, detail="Training not found")
     
-    # Get all enrollments with user info
+  
     enrollments_result = await db.execute(
         select(Enrollment, User.email, User.full_name)
         .join(User, Enrollment.user_id == User.id)
@@ -88,16 +135,13 @@ async def export_attendance_report(
     )
     enrollments = enrollments_result.all()
     
-    # Create CSV
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Header
     writer.writerow(['Name', 'Email', 'Total Sessions', 'Present', 'Absent', 'Excused', 'Attendance %'])
     
-    # Data rows
     for enrollment, email, full_name in enrollments:
-        # Get attendance stats
+        
         total_sessions = await db.execute(
             select(func.count(Attendance.id))
             .where(Attendance.enrollment_id == enrollment.id)
@@ -149,7 +193,6 @@ async def export_attendance_report(
             f"{attendance_pct:.1f}%"
         ])
     
-    # Return CSV file
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
@@ -158,6 +201,7 @@ async def export_attendance_report(
             "Content-Disposition": f"attachment; filename=attendance_report_{training.title.replace(' ', '_')}.csv"
         }
     )
+
 
 @router.get("/training/{training_id}/completion-export")
 async def export_completion_report(
@@ -189,14 +233,11 @@ async def export_completion_report(
     )
     enrollments = enrollments_result.all()
     
-    # Create CSV
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Header
     writer.writerow(['Name', 'Email', 'Enrolled Date', 'Completion Date', 'Certificate ID'])
     
-    # Data rows
     for enrollment, email, full_name in enrollments:
         writer.writerow([
             full_name,
@@ -206,7 +247,6 @@ async def export_completion_report(
             str(enrollment.id)[:8]
         ])
     
-    # Return CSV file
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
@@ -216,6 +256,7 @@ async def export_completion_report(
         }
     )
 
+
 @router.get("/user/{user_id}/transcript")
 async def get_user_transcript(
     user_id: UUID,
@@ -224,11 +265,11 @@ async def get_user_transcript(
 ):
     """Get user training transcript"""
     
-    # Check authorization - users can only view their own transcript unless admin/instructor
+   
     if current_user.id != user_id and current_user.role not in ["Admin", "Instructor"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Get user info
+
     user_result = await db.execute(
         select(User).where(User.id == user_id)
     )
@@ -236,7 +277,7 @@ async def get_user_transcript(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Get all enrollments
+
     enrollments_result = await db.execute(
         select(Enrollment, Training.title, Training.duration_hours, Training.category)
         .join(Training, Enrollment.training_id == Training.id)

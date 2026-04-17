@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import auth, trainings, enrollments, instructor, admin, certificates, onboarding, course_content, content_progress, course_completion, modules, lessons, content_items, assessments, attendance, progress, completion, notifications, reports, support
-from app.api.v1.endpoints import admin_metrics
 from app.api.v1.endpoints import comments
 
 api_router = APIRouter(prefix="/api/v1")
@@ -26,8 +25,3 @@ api_router.include_router(completion.router)
 api_router.include_router(notifications.router)
 api_router.include_router(reports.router)
 api_router.include_router(support.router, prefix="/support", tags=["support"])
-api_router.include_router(
-    admin_metrics.router,
-    prefix="/admin",
-    tags=["admin"]
-)

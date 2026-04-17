@@ -58,7 +58,7 @@ export const rejectTraining = (id, reason) => api.post(`/admin/trainings/${id}/r
 export const publishTraining = (id) => api.post(`/admin/trainings/${id}/publish`).then(r => r.data)
 export const getAllUsers = () => api.get('/admin/users').then(r => r.data)
 export const updateUserRole = (userId, roleId) => api.put(`/admin/users/${userId}/role`, { role_id: roleId }).then(r => r.data)
-export const getCompletionReport = () => api.get('/admin/reports/completion').then(r => r.data)
+export const getCompletionReport = (trainingId) => api.get(`/reports/completion/${trainingId}`).then(r => r.data)
 export const getAuditLogs = () => api.get('/admin/audit-logs').then(r => r.data)
 
 // Certificates
@@ -107,8 +107,6 @@ export const getRoster = getTrainingRoster
 
 export const submitTraining = submitForReview
 export const myEnrollments = getMyEnrollments
-
-// FIX: getPublicTrainings should call /trainings/public, not /trainings/
 
 // Public trainings (no auth required)
 export const getPublicTrainings = () => api.get('/trainings/public').then(r => r.data)
