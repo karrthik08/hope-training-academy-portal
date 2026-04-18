@@ -5,7 +5,10 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+console.log('🔧 API CLIENT INITIALIZED WITH baseURL:', api.defaults.baseURL);
+
 api.interceptors.request.use((config) => {
+  console.log('🔧 MAKING REQUEST TO:', config.url, 'FULL URL:', config.baseURL + config.url);
   const token = localStorage.getItem('hope_access_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
