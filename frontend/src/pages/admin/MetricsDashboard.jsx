@@ -27,14 +27,14 @@ const AdminMetrics = () => {
   }, [searchTerm, categoryFilter, completionFilter, fromDate, toDate, trainings]);
 
   const fetchMetrics = async () => {
-    console.log('ENV CHECK:', import.meta.env.VITE_API_BASE_URL);
-    console.log('FULL URL:', `${import.meta.env.VITE_API_BASE_URL}/api/v1/admin/metrics`);
-    
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/v1/admin/metrics`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  const API_URL = 'https://hope-backend-yc30.onrender.com';
+  console.log('Using hardcoded API_URL:', API_URL);
+  
+  try {
+    const response = await axios.get(
+      `${API_URL}/api/v1/admin/metrics`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
       console.log('Metrics response:', response.data);
       setMetrics(response.data);
       setLoading(false);
@@ -45,11 +45,13 @@ const AdminMetrics = () => {
   };
 
   const fetchTrainings = async () => {
-    try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/v1/admin/trainings/detailed-metrics`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  const API_URL = 'https://hope-backend-yc30.onrender.com';
+  
+  try {
+    const response = await axios.get(
+      `${API_URL}/api/v1/admin/trainings/detailed-metrics`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
       setTrainings(response.data);
       setFilteredTrainings(response.data);
     } catch (error) {
