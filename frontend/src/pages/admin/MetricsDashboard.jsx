@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 
 const AdminMetrics = () => {
@@ -27,14 +27,8 @@ const AdminMetrics = () => {
   }, [searchTerm, categoryFilter, completionFilter, fromDate, toDate, trainings]);
 
   const fetchMetrics = async () => {
-  const API_URL = 'https://hope-backend-yc30.onrender.com';
-  console.log('Using hardcoded API_URL:', API_URL);
-  
-  try {
-    const response = await axios.get(
-      `${API_URL}/api/v1/admin/metrics`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const response = await api.get('/admin/metrics');
       console.log('Metrics response:', response.data);
       setMetrics(response.data);
       setLoading(false);
@@ -45,13 +39,8 @@ const AdminMetrics = () => {
   };
 
   const fetchTrainings = async () => {
-  const API_URL = 'https://hope-backend-yc30.onrender.com';
-  
-  try {
-    const response = await axios.get(
-      `${API_URL}/api/v1/admin/trainings/detailed-metrics`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const response = await api.get('/admin/trainings/detailed-metrics');
       setTrainings(response.data);
       setFilteredTrainings(response.data);
     } catch (error) {
