@@ -27,6 +27,9 @@ const AdminMetrics = () => {
   }, [searchTerm, categoryFilter, completionFilter, fromDate, toDate, trainings]);
 
   const fetchMetrics = async () => {
+    console.log('ENV CHECK:', import.meta.env.VITE_API_BASE_URL);
+    console.log('FULL URL:', `${import.meta.env.VITE_API_BASE_URL}/api/v1/admin/metrics`);
+    
     try {
       const response = await axios.get(
         `${import.meta.env.VITE_API_BASE_URL}/api/v1/admin/metrics`,
@@ -114,16 +117,16 @@ const AdminMetrics = () => {
   const categories = [...new Set(trainings.map(t => t.category).filter(Boolean))];
 
   return (
-  <div className="p-6 bg-gray-50 min-h-screen">
-    <div className="flex items-center gap-4 mb-6">
-      <button
-        onClick={() => window.history.back()}
-        className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 flex items-center gap-2"
-      >
-        ← Back
-      </button>
-      <h1 className="text-3xl font-bold">Admin Metrics Dashboard</h1>
-    </div>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => window.history.back()}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 flex items-center gap-2"
+        >
+          ← Back
+        </button>
+        <h1 className="text-3xl font-bold">Admin Metrics Dashboard</h1>
+      </div>
       
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
