@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getAllTrainings, approveTraining, publishTraining, getAuditLogs, getCompletionReport } from '../../api/client'
+import { Link } from 'react-router-dom'
 
 export default function AdminDashboard() {
   const [trainings, setTrainings] = useState([])
@@ -74,12 +75,12 @@ export default function AdminDashboard() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <div className="flex gap-3">
-          <a href="/admin/metrics" className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-            📊 View Metrics
-          </a>
-          <a href="/admin/course-review" className="bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium">
-            📋 Review Courses ({submitted.length})
-          </a>
+          <Link to="/admin/metrics" className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+  📊 View Metrics
+</Link>
+<Link to="/admin/course-review" className="bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium">
+  📋 Review Courses ({submitted.length})
+</Link>
         </div>
       </div>
 
