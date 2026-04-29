@@ -8,66 +8,49 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.training import Training, TrainingStatus
 from app.schemas.training import TrainingCreate, TrainingUpdate, TrainingOut
-from app.api.v1.deps import get_current_user
+from app.api.v1.deps import get_current_user, require_roles
 from app.services.audit import log_action
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 
+# ============================================================================
+# NEW ENDPOINT - /all (for dashboards)
+# ============================================================================
 
 @router.get("/all", response_model=List[TrainingOut])
 async def list_all_trainings(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),  # Changed to dict
+    current_user: dict = Depends(get_current_user),
     status: Optional[str] = None,
     category: Optional[str] = None,
 ):
-    """
-    Get all trainings - for admin and instructor dashboards.
-    
-    Query Parameters:
-    - status: Filter by training status
-    - category: Filter by category
-    
-    Access Control:
-    - Admins: See all trainings
-    - Instructors: See only their own trainings
-    - Participants: Forbidden
-    """
-    # Get user roles from the token
+    """Get all trainings for admin/instructor dashboards"""
     user_roles = current_user.get("roles", [])
     user_email = current_user.get("email", "")
     
-    # Check if user has required role
+    # Check permissions
     if "Admin" not in user_roles and "Instructor" not in user_roles:
-        raise HTTPException(
-            status_code=403,
-            detail="Only admins and instructors can access this endpoint"
-        )
+        raise HTTPException(status_code=403, detail="Access denied")
     
-    # Start building query
     query = select(Training)
     
-    # If instructor (not admin), filter to their trainings
+    # Filter by instructor email if not admin
     if "Instructor" in user_roles and "Admin" not in user_roles:
         query = query.where(Training.instructor_email == user_email)
     
-    # Apply status filter if provided
+    # Apply filters
     if status:
         query = query.where(Training.status == status)
-    
-    # Apply category filter if provided
     if category:
         query = query.where(Training.category == category)
     
-    # Order by most recent first
     query = query.order_by(Training.created_at.desc())
     
-    # Execute query
     result = await db.execute(query)
     return result.scalars().all()
 
 # ============================================================================
-# Original endpoints - using require_roles for endpoints that need User object
+# ALL ORIGINAL ENDPOINTS BELOW - UNCHANGED
 # ============================================================================
 
 @router.get("/public", response_model=List[TrainingOut])
@@ -79,7 +62,7 @@ async def list_published_trainings(db: AsyncSession = Depends(get_db)):
 async def get_training(
     training_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """Get a single training by ID"""
     training = await db.get(Training, training_id)
@@ -91,17 +74,12 @@ async def get_training(
 async def create_training(
     payload: TrainingCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(require_roles("Admin", "Instructor")),
 ):
-    # Check roles
-    user_roles = current_user.get("roles", [])
-    if "Admin" not in user_roles and "Instructor" not in user_roles:
-        raise HTTPException(status_code=403, detail="Only admins and instructors can create trainings")
-    
-    training = Training(**payload.model_dump(), created_by=current_user["sub"])
+    training = Training(**payload.model_dump(), created_by=current_user.id)
     db.add(training)
     await db.flush()
-    await log_action(db, current_user["sub"], "create", "Training", str(training.id))
+    await log_action(db, current_user.id, "create", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
     return training
@@ -111,19 +89,14 @@ async def update_training(
     training_id: uuid.UUID,
     payload: TrainingUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(require_roles("Admin", "Instructor")),
 ):
-    # Check roles
-    user_roles = current_user.get("roles", [])
-    if "Admin" not in user_roles and "Instructor" not in user_roles:
-        raise HTTPException(status_code=403, detail="Only admins and instructors can update trainings")
-    
     training = await db.get(Training, training_id)
     if not training:
         raise HTTPException(status_code=404, detail="Training not found")
     for field, value in payload.model_dump(exclude_none=True).items():
         setattr(training, field, value)
-    await log_action(db, current_user["sub"], "update", "Training", str(training.id))
+    await log_action(db, current_user.id, "update", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
     return training
@@ -132,13 +105,8 @@ async def update_training(
 async def submit_for_review(
     training_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(require_roles("Admin", "Instructor")),
 ):
-    # Check roles
-    user_roles = current_user.get("roles", [])
-    if "Admin" not in user_roles and "Instructor" not in user_roles:
-        raise HTTPException(status_code=403, detail="Only admins and instructors can submit trainings")
-    
     training = await db.get(Training, training_id)
     
     if not training:
@@ -150,7 +118,7 @@ async def submit_for_review(
     training.status = "submitted"
     training.submitted_at = datetime.utcnow()
     
-    await log_action(db, current_user["sub"], "submit", "Training", str(training.id))
+    await log_action(db, current_user.id, "submit", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
     
@@ -160,18 +128,13 @@ async def submit_for_review(
 async def approve_training(
     training_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(require_roles("Admin")),
 ):
-    # Check roles
-    user_roles = current_user.get("roles", [])
-    if "Admin" not in user_roles:
-        raise HTTPException(status_code=403, detail="Only admins can approve trainings")
-    
     training = await db.get(Training, training_id)
     if not training:
         raise HTTPException(status_code=404, detail="Training not found")
     training.status = TrainingStatus.approved
-    await log_action(db, current_user["sub"], "approve", "Training", str(training.id))
+    await log_action(db, current_user.id, "approve", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
     return training
@@ -180,13 +143,8 @@ async def approve_training(
 async def reject_training(
     training_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(require_roles("Admin")),
 ):
-    # Check roles
-    user_roles = current_user.get("roles", [])
-    if "Admin" not in user_roles:
-        raise HTTPException(status_code=403, detail="Only admins can reject trainings")
-    
     training = await db.get(Training, training_id)
     
     if not training:
@@ -197,7 +155,7 @@ async def reject_training(
     
     training.status = "draft"
     
-    await log_action(db, current_user["sub"], "reject", "Training", str(training.id))
+    await log_action(db, current_user.id, "reject", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
     
@@ -207,20 +165,15 @@ async def reject_training(
 async def publish_training(
     training_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(require_roles("Admin", "Instructor")),
 ):
-    # Check roles
-    user_roles = current_user.get("roles", [])
-    if "Admin" not in user_roles and "Instructor" not in user_roles:
-        raise HTTPException(status_code=403, detail="Only admins and instructors can publish trainings")
-    
     training = await db.get(Training, training_id)
     if not training:
         raise HTTPException(status_code=404, detail="Training not found")
     if training.status not in (TrainingStatus.approved, TrainingStatus.published):
         raise HTTPException(status_code=400, detail="Training must be approved before publishing")
     training.status = TrainingStatus.published
-    await log_action(db, current_user["sub"], "publish", "Training", str(training.id))
+    await log_action(db, current_user.id, "publish", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
     return training
@@ -229,18 +182,13 @@ async def publish_training(
 async def unpublish_training(
     training_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(require_roles("Admin", "Instructor")),
 ):
-    # Check roles
-    user_roles = current_user.get("roles", [])
-    if "Admin" not in user_roles and "Instructor" not in user_roles:
-        raise HTTPException(status_code=403, detail="Only admins and instructors can unpublish trainings")
-    
     training = await db.get(Training, training_id)
     if not training:
         raise HTTPException(status_code=404, detail="Training not found")
     training.status = TrainingStatus.approved
-    await log_action(db, current_user["sub"], "unpublish", "Training", str(training.id))
+    await log_action(db, current_user.id, "unpublish", "Training", str(training.id))
     await db.commit()
     await db.refresh(training)
     return training
