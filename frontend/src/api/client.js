@@ -38,7 +38,7 @@ export const login = (email, password) => api.post('/auth/login', { email, passw
 export const register = (userData) => api.post('/auth/register', userData)
 
 // Trainings
-export const getAllTrainings = () => api.get('/trainings').then(r => r.data)
+export const getAllTrainings = () => api.get('/trainings/all').then(r => r.data)
 export const getTrainingById = (id) => api.get(`/trainings/${id}`).then(r => r.data)
 export const createTraining = (data) => api.post('/trainings', data).then(r => r.data)
 export const updateTraining = (id, data) => api.put(`/trainings/${id}`, data).then(r => r.data)

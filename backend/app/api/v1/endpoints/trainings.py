@@ -13,12 +13,8 @@ from app.services.audit import log_action
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 
-# ============================================================================
-# NEW ENDPOINT - SIMPLIFIED VERSION
-# Uses get_current_user instead of require_roles to avoid dependency issues
-# ============================================================================
 
-@router.get("/", response_model=List[TrainingOut])
+@router.get("/all", response_model=List[TrainingOut])
 async def list_all_trainings(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),  # Changed to dict
