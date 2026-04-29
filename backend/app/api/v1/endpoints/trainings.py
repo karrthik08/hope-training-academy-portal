@@ -15,7 +15,7 @@ router = APIRouter(prefix="/trainings", tags=["trainings"])
 
 # ============================================================================
 # NEW ENDPOINT - Get ALL trainings for dashboards
-# THIS MUST BE FIRST (before any routes with {training_id})
+# FIXED VERSION - Properly handles user roles
 # ============================================================================
 
 @router.get("/", response_model=List[TrainingOut])
@@ -38,11 +38,19 @@ async def list_all_trainings(
     """
     query = select(Training)
     
-    # Get user roles - check if user is admin
-    user_roles = [role.name for role in current_user.roles] if hasattr(current_user, 'roles') else []
+    # FIXED: Get user roles properly
+    # The require_roles dependency already validated the user has Admin or Instructor role
+    # We need to check if they're Admin specifically to show all trainings
     
-    # If instructor (not admin), filter to only their trainings
-    if "Instructor" in user_roles and "Admin" not in user_roles:
+    # Load the user's roles if not already loaded
+    if not hasattr(current_user, 'roles') or current_user.roles is None:
+        await db.refresh(current_user, ['roles'])
+    
+    # Check if user has Admin role
+    is_admin = any(role.name == "Admin" for role in current_user.roles)
+    
+    # If not admin (meaning they're instructor only), filter to their trainings
+    if not is_admin:
         query = query.where(Training.instructor_email == current_user.email)
     
     # Apply status filter if provided
