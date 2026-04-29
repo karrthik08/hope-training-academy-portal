@@ -15,7 +15,7 @@ export default function ProgressTracker() {
   const loadData = async () => {
     try {
       // Load training info
-      const trainingRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/trainings/${trainingId}`, {
+      const trainingRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/trainings/${trainingId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
       const trainingData = await trainingRes.json();

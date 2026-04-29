@@ -35,7 +35,7 @@ export default function CourseBuilder() {
       
       // Load self-enrollment status
       try {
-        const trainingRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/trainings/${trainingId}`, {
+        const trainingRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/trainings/${trainingId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
         });
         const training = await trainingRes.json();

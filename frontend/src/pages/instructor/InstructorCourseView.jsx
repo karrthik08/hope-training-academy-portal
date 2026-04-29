@@ -31,14 +31,14 @@ export default function InstructorCourseView() {
   const loadData = async () => {
     try {
       // Load training details
-      const trainingRes = await fetch(`${API_BASE}/api/v1/trainings/${trainingId}`, {
+      const trainingRes = await fetch(`${API_BASE}/trainings/${trainingId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const trainingData = await trainingRes.json();
       setTraining(trainingData);
 
       // Load enrollments for this training
-      const enrollmentsRes = await fetch(`${API_BASE}/api/v1/instructor/trainings/${trainingId}/roster`, {
+      const enrollmentsRes = await fetch(`${API_BASE}/instructor/trainings/${trainingId}/roster`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const enrollmentsData = await enrollmentsRes.json();
