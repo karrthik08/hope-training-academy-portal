@@ -33,20 +33,16 @@ async def list_all_trainings(
         raise HTTPException(status_code=403, detail="Access denied")
     
     query = select(Training)
-    
+
     if status:
         query = query.where(Training.status == status)
     if category:
         query = query.where(Training.category == category)
     
-    query = query.order_by(Training.created_at.desc())
+    query = query.order_by(Training.created_at.asc())
     
     result = await db.execute(query)
     return result.scalars().all()
-
-# ============================================================================
-# ALL ORIGINAL ENDPOINTS BELOW - UNCHANGED
-# ============================================================================
 
 @router.get("/public", response_model=List[TrainingOut])
 async def list_published_trainings(db: AsyncSession = Depends(get_db)):
