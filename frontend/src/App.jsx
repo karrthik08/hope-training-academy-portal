@@ -28,6 +28,7 @@ import AssessmentBuilder from './pages/instructor/AssessmentBuilder';
 import TakeAssessment from './pages/participant/TakeAssessment';
 import AssessmentResults from './pages/instructor/AssessmentResults';
 import BulkEnrollment from './pages/instructor/BulkEnrollment';
+import PaymentSuccess from './pages/payment/PaymentSuccess'
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { token, user } = useAuthStore()
@@ -45,6 +46,7 @@ export default function App() {
         {/* Standalone pages — no nav/layout */}
         <Route path="/certificate/:enrollmentId" element={<CertificatePage />} />
         <Route path="/verify/:verificationCode" element={<VerifyCertificate />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
 
         {/* All pages with full header/footer layout */}
         <Route path="/" element={<MainLayout />}>

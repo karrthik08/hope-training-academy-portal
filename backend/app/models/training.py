@@ -1,6 +1,7 @@
 import uuid, enum
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime, ForeignKey, Text, UniqueConstraint, Integer, Boolean
+from sqlalchemy import String, DateTime, ForeignKey, Text, UniqueConstraint, Integer, Boolean, Numeric
+from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.session import Base
@@ -28,6 +29,7 @@ class Training(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    price: Mapped[Optional[Decimal]] = mapped_column(Numeric(precision=10, scale=2), nullable=True, server_default='0.00')
     
     # Course details
     target_audience: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -39,6 +41,10 @@ class Training(Base):
     dropbox_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     flyer_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     
+    # Instructor info
+    instructor_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    instructor_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+            
     # Enrollment settings
     self_enrollment_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
     
@@ -48,7 +54,7 @@ class Training(Base):
     start_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     end_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     
-    # Workflow status (SINGLE DEFINITION - REMOVED DUPLICATE)
+    # Workflow status
     status: Mapped[str] = mapped_column(String(50), default=TrainingStatus.draft)
     submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -59,19 +65,20 @@ class Training(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     
-    # Relations
-    creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
-    approved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[approved_by_id])
-    enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="training")
-    assessments: Mapped[list["Assessment"]] = relationship("Assessment", back_populates="training", cascade="all, delete-orphan")
-    comments: Mapped[list["TrainingComment"]] = relationship("TrainingComment", back_populates="training", cascade="all, delete-orphan")
-
+    # Additional resources
     instructor_manual_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     knowledge_mgmt_folder_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     student_handbook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     student_workbook_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     slides_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     qrc_surveys_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    
+    # Relations
+    creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
+    approved_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[approved_by_id])
+    enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="training")
+    assessments: Mapped[list["Assessment"]] = relationship("Assessment", back_populates="training", cascade="all, delete-orphan")
+    comments: Mapped[list["TrainingComment"]] = relationship("TrainingComment", back_populates="training", cascade="all, delete-orphan")
 
 class Enrollment(Base):
     __tablename__ = "enrollments"

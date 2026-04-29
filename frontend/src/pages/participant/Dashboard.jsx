@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { myEnrollments, cancelEnrollment, getPublicTrainings, enroll } from '../../api/client'
+import { myEnrollments, cancelEnrollment, getPublicTrainings, enroll, createCheckoutSession } from '../../api/client'
 import { selfEnroll } from '../../api/enrollments'
 import { useAuthStore } from '../../store/authStore'
 import { Link } from 'react-router-dom'
@@ -21,6 +21,7 @@ const CATEGORY_COLORS = {
   'Train-the-Trainer':                       'bg-yellow-100 text-yellow-700',
   'Family & Community Support':              'bg-orange-100 text-orange-700',
   'Workforce Development':                   'bg-teal-100 text-teal-700',
+  'Peer Support Specialist':                 'bg-indigo-100 text-indigo-700',
 }
 
 function VideoPlayer({ training }) {
@@ -101,9 +102,24 @@ export default function ParticipantDashboard() {
     finally { setLoading(false) }
   }
 
-  const handleEnroll = async (id) => {
+  const handleEnroll = async (trainingId, price) => {
+    // If course has a price, redirect to Stripe checkout
+    if (price > 0) {
+      try {
+        setLoading(true)
+        const { checkout_url } = await createCheckoutSession(trainingId)
+        // Redirect to Stripe checkout page
+        window.location.href = checkout_url
+      } catch(e) {
+        setLoading(false)
+        alert('Failed to create checkout session: ' + (e.response?.data?.detail || e.message))
+      }
+      return
+    }
+    
+    // Free course - enroll directly
     try { 
-      await selfEnroll(id);
+      await selfEnroll(trainingId);
       await load();
       alert('Successfully enrolled!');
     }
@@ -174,7 +190,12 @@ export default function ParticipantDashboard() {
                   return (
                     <React.Fragment key={e.id}>
                       <tr className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{t?.title || '—'}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-900">{t?.title || '—'}</div>
+                          {t?.instructor_name && (
+                            <div className="text-xs text-gray-600 mt-1">👤 Instructor: {t.instructor_name}</div>
+                          )}
+                      </td>
                         <td className="px-4 py-3">
                           {t?.category && (
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[t.category] || 'bg-gray-100 text-gray-600'}`}>
@@ -219,7 +240,7 @@ export default function ParticipantDashboard() {
                               
                               <div className="bg-blue-100 border border-blue-300 text-blue-800 px-4 py-3 rounded">
                                 <p className="text-sm font-medium">
-                                  ℹ️ Your instructor will mark you as complete when you finish the training. 
+                                  ℹ️ {t?.instructor_name ? `Your instructor (${t.instructor_name}) will` : 'Your instructor will'} mark you as complete when you finish the training. 
                                   You'll receive your certificate once they approve your completion.
                                 </p>
                               </div>
@@ -262,14 +283,24 @@ export default function ParticipantDashboard() {
               const isEnrolled     = !!enrolledEntry
               const isCompleted    = !!completedEntry
               const hasVideo       = !!t.video_url
+              const price          = parseFloat(t.price) || 0
+              const isFree         = price === 0
 
               return (
                 <div key={t.id} className="bg-white rounded-lg shadow p-5 flex flex-col gap-3">
-                  {t.category && (
-                    <span className={`self-start px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[t.category] || 'bg-gray-100 text-gray-600'}`}>
-                      {t.category}
-                    </span>
-                  )}
+                  <div className="flex justify-between items-start">
+                    {t.category && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[t.category] || 'bg-gray-100 text-gray-600'}`}>
+                        {t.category}
+                      </span>
+                    )}
+                    
+                    {/* Price Badge */}
+                    <div className={`px-3 py-1 rounded-full text-sm font-bold ${isFree ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {isFree ? 'FREE' : `$${price.toFixed(2)}`}
+                    </div>
+                  </div>
+
                   <h3 className="font-semibold text-gray-900">{t.title}</h3>
                   <p className="text-sm text-gray-500 flex-1 line-clamp-3">{t.description || 'No description provided.'}</p>
 
@@ -294,9 +325,11 @@ export default function ParticipantDashboard() {
                       📚 Continue Training →
                     </Link>
                   ) : (
-                    <button onClick={() => handleEnroll(t.id)}
-                      className="w-full bg-blue-600 text-white text-sm py-2 rounded hover:bg-blue-700">
-                      Enroll Now
+                    <button 
+                      onClick={() => handleEnroll(t.id, price)}
+                      className={`w-full text-white text-sm py-2 rounded font-medium ${isFree ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    >
+                      {isFree ? '✓ Enroll Now' : `💳 Pay $${price.toFixed(2)} & Enroll`}
                     </button>
                   )}
                 </div>

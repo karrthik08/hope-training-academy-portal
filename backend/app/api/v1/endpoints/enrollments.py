@@ -78,7 +78,8 @@ async def bulk_enroll(
                 await notify_training_enrollment(
                     user_name=user.full_name,
                     user_email=user.email,
-                    training_title=training.title
+                    training_title=training.title,
+                    instructor_email=training.instructor_email
                 )
             
         except Exception as e:
@@ -135,7 +136,8 @@ async def enroll_by_email(
         await notify_training_enrollment(
             user_name=user.full_name,
             user_email=user.email,
-            training_title=training.title
+            training_title=training.title,
+            instructor_email=training.instructor_email
         )
     
     return {"message": "User enrolled successfully", "user_email": email}
@@ -171,9 +173,10 @@ async def enroll(
     
     # Send notification email
     await notify_training_enrollment(
-        user_name=current_user.full_name,
-        user_email=current_user.email,
-        training_title=training.title
+        user_name=user.full_name,
+        user_email=user.email,
+        training_title=training.title,
+        instructor_email=training.instructor_email
     )
     
     return enrollment
@@ -450,9 +453,9 @@ async def self_enroll(
     await notify_training_enrollment(
         user_name=current_user.full_name,
         user_email=current_user.email,
-        training_title=training.title
+        training_title=training.title,
+        instructor_email=training.instructor_email
     )
-    
     return {"message": "Successfully enrolled", "training_title": training.title}
 
 @router.delete("/remove/{enrollment_id}")

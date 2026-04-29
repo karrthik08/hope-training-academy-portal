@@ -6,6 +6,7 @@ class TrainingCreate(BaseModel):
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
+    price: Optional[float] = 0.00
     target_audience: Optional[str] = None
     delivery_type: str = "self-paced"
     duration_hours: Optional[int] = None
@@ -16,6 +17,8 @@ class TrainingCreate(BaseModel):
     video_url: Optional[str] = None
     dropbox_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    instructor_name: Optional[str] = None
+    instructor_email: Optional[str] = None
     instructor_manual_url: Optional[str] = None
     knowledge_mgmt_folder_url: Optional[str] = None
     student_handbook_url: Optional[str] = None
@@ -28,6 +31,7 @@ class TrainingUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
+    price: Optional[float] = None
     target_audience: Optional[str] = None
     delivery_type: Optional[str] = None
     duration_hours: Optional[int] = None
@@ -38,6 +42,8 @@ class TrainingUpdate(BaseModel):
     video_url: Optional[str] = None
     dropbox_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    instructor_name: Optional[str] = None
+    instructor_email: Optional[str] = None
     instructor_manual_url: Optional[str] = None
     knowledge_mgmt_folder_url: Optional[str] = None
     student_handbook_url: Optional[str] = None
@@ -52,6 +58,7 @@ class TrainingOut(BaseModel):
     description: Optional[str]
     status: str
     category: Optional[str] = None
+    price: Optional[float] = None
     target_audience: Optional[str] = None
     delivery_type: str
     duration_hours: Optional[int] = None
@@ -68,6 +75,8 @@ class TrainingOut(BaseModel):
     video_url: Optional[str] = None
     dropbox_url: Optional[str] = None
     flyer_url: Optional[str] = None
+    instructor_name: Optional[str] = None
+    instructor_email: Optional[str] = None
     instructor_manual_url: Optional[str] = None
     knowledge_mgmt_folder_url: Optional[str] = None
     student_handbook_url: Optional[str] = None

@@ -1,0 +1,21 @@
+#!/bin/bash
+echo "=== HOPE PORTAL CODE STATISTICS ==="
+echo ""
+echo "LINES OF CODE:"
+echo "Backend Python:"
+find backend/app -name "*.py" | xargs wc -l | tail -1
+echo ""
+echo "Frontend React:"
+find frontend/src -name "*.jsx" -o -name "*.js" | xargs wc -l | tail -1
+echo ""
+echo "FILE COUNTS:"
+echo "Backend files: $(find backend/app -name "*.py" | wc -l)"
+echo "Frontend files: $(find frontend/src -name "*.jsx" -o -name "*.js" | wc -l)"
+echo ""
+echo "DEPENDENCIES:"
+echo "Python packages: $(cat backend/requirements.txt | grep -v "^#" | grep -v "^$" | wc -l)"
+echo "Node packages: $(cat frontend/package.json | grep -c '\".*\":')"
+echo ""
+echo "GIT HISTORY:"
+echo "Total commits: $(git log --oneline | wc -l)"
+echo "Beta phase commits: $(git log --since='2026-03-15' --oneline | wc -l)"

@@ -33,7 +33,7 @@ export default function CourseView() {
   const navigate = useNavigate()
   const trackLessonProgress = async (lessonId, status = 'in_progress') => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/progress/update`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/progress/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ export default function CourseView() {
     try {
       const enrollmentData = await getEnrollmentById(enrollmentId);
     // Load progress
-    const progressRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/progress/enrollment/${enrollmentId}`, {
+    const progressRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/progress/enrollment/${enrollmentId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
     });
     const enrollmentProgressData = await progressRes.json();
@@ -81,10 +81,14 @@ export default function CourseView() {
       setEnrollment(enrollmentData);
 
       // Load training details to get video URLs
-      const trainingRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/trainings/${enrollmentData.training_id}`, {
+      const trainingRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/trainings/${enrollmentData.training_id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
       const trainingData = await trainingRes.json();
+      console.log('🔍 TRAINING DATA LOADED:', trainingData);
+      console.log('📹 Video URL:', trainingData.video_url);
+      console.log('📦 Dropbox URL:', trainingData.dropbox_url);
+      console.log('📚 Student Handbook:', trainingData.student_handbook_url);
       setTraining(trainingData);
 
       const moduleData = await getCourseStructure(enrollmentData.training_id);
@@ -123,7 +127,7 @@ export default function CourseView() {
       
       const enrollmentData = await getEnrollmentById(enrollmentId);
       // Load progress
-      const progressRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/progress/enrollment/${enrollmentId}`, {
+      const progressRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/progress/enrollment/${enrollmentId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
       const enrollmentProgressData = await progressRes.json();

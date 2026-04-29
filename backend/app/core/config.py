@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ENVIRONMENT: str = "development"
     CORS_ORIGINS: str = '["http://localhost:5173"]'
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_SECRET_KEY: str = ""
 
     # Email Configuration
     SMTP_SERVER: str = "smtp.gmail.com"

@@ -10,6 +10,7 @@ const CATEGORIES = [
   'Professional Development',
   'Clinical & Medical',
   'Curriculum Development & Implementation',
+  'Peer Support Specialist',
   'Youth Prevention Training',
   'Business Incubator',
   'Peer Support Certification Training',
@@ -22,6 +23,9 @@ const CATEGORIES = [
 const EMPTY_FORM = { 
   title: '', 
   description: '', 
+  category: '',
+  instructor_name: '',
+  instructor_email: '',
   category: '', 
   video_url: '', 
   dropbox_url: '',
@@ -33,7 +37,6 @@ const EMPTY_FORM = {
   slides_url: '',
   qrc_surveys_url: '',
   target_audience: '',
-  instructor_name: '',
   delivery_type: 'self-paced',
   duration_hours: '',
   start_date: '',
@@ -73,7 +76,16 @@ export default function InstructorDashboard() {
 
   const loadTrainings = async () => {
     setLoading(true)
-    try { const r = await getAllTrainings(); setTrainings(r) }
+    try { 
+      const r = await getAllTrainings(); 
+      console.log("📊 Instructor fields:", {
+  title: r[0]?.title,
+  instructor_name: r[0]?.instructor_name,
+  instructor_email: r[0]?.instructor_email
+});
+
+      setTrainings(r);
+    }
     catch(e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -89,6 +101,8 @@ export default function InstructorDashboard() {
     setForm({
       title:            t.title || '',
       description:      t.description || '',
+      instructor_name:  t.instructor_name || '',
+      instructor_email: t.instructor_email || '',
       category:         t.category || '',
       video_url:        t.video_url || '',
       dropbox_url:      t.dropbox_url || '',
@@ -100,7 +114,6 @@ export default function InstructorDashboard() {
       slides_url: t.slides_url || '',
       qrc_surveys_url: t.qrc_surveys_url || '',
       target_audience:  t.target_audience || '',
-      instructor_name:  t.instructor_name || '',
       delivery_type:    t.delivery_type || 'self-paced',
       duration_hours:   t.duration_hours || '',
       start_date:       t.start_date ? t.start_date.slice(0,16) : '',
@@ -124,21 +137,26 @@ export default function InstructorDashboard() {
   }
 
   const handleSave = async () => {
-    if (!form.title.trim()) return alert('Title required')
-    setSaving(true)
-    try {
-      const payload = {
-        ...form,
-        duration_hours: form.duration_hours ? parseInt(form.duration_hours) : null,
-        start_date: form.start_date || null,
-        end_date: form.end_date || null,
-      }
-      
-      if (editTarget) {
-        await updateTraining(editTarget.id, payload)
-      } else {
-        await createTraining(payload)
-      }
+  if (!form.title.trim()) return alert('Title required')
+  setSaving(true)
+  try {
+    const payload = {
+      ...form,
+      duration_hours: form.duration_hours ? parseInt(form.duration_hours) : null,
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
+    }
+    
+    console.log("💾 SAVING PAYLOAD:", {
+      instructor_name: payload.instructor_name,
+      instructor_email: payload.instructor_email
+    });
+    
+    if (editTarget) {
+      await updateTraining(editTarget.id, payload)
+    } else {
+      await createTraining(payload)
+    }
       closeForm()
       await loadTrainings()
     } catch(e) {
@@ -206,7 +224,7 @@ export default function InstructorDashboard() {
   const handleRemoveParticipant = async (enrollmentId) => {
     if (!confirm('Remove this participant from the training?')) return
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/enrollments/remove/${enrollmentId}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/enrollments/remove/${enrollmentId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       })
@@ -358,17 +376,51 @@ export default function InstructorDashboard() {
                 onChange={e => setForm({...form, description: e.target.value})}
               />
             </div>
+            
+            {/* INSTRUCTOR */}
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Instructor Name
+              </label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="Dr. Patrecia Williams"
+                value={form.instructor_name || ''}
+                onChange={e => setForm({...form, instructor_name: e.target.value})}
+              />
+              <p className="text-xs text-gray-500 mt-1">Leave blank to default to "Organization of Hope"</p>
+            </div>
 
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Instructor Email
+              </label>
+              <input
+                type="email"
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="oohtraining@organizationofhope.org"
+                value={form.instructor_email || ''}
+                onChange={e => setForm({...form, instructor_email: e.target.value})}
+              />
+              <p className="text-xs text-gray-500 mt-1">Course notifications will be sent to this email</p>
+            </div>
+            
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
               <select
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                value={form.category}
-                onChange={e => setForm({...form, category: e.target.value})}
+                value={form.category || ''}
+                onChange={(e) => setForm({...form, category: e.target.value})}
+                className="w-full px-3 py-2 border rounded-md"
               >
-                <option value="">Select a category</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">-- Select Category --</option>
+                <option value="Peer Support Specialist">Peer Support Specialist</option>
+                <option value="Prevention & Youth Education">Prevention & Youth Education</option>
+                <option value="PTND">PTND</option>
+                <option value="PPW">PPW</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -778,7 +830,13 @@ export default function InstructorDashboard() {
                   {filteredTrainings.map(t => (
                     <tr key={t.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{t.title}</div>
+                       <div className="font-medium text-gray-900">{t.title}</div>
+                        {t.instructor_name && (
+                          <div className="text-xs text-gray-600 mt-1">👤 Instructor: {t.instructor_name}</div>
+                        )}
+                        {t.instructor_email && (
+                          <div className="text-xs text-gray-600 mt-1">📧 Email: {t.instructor_email}</div>
+                        )}
                         <div className="flex gap-2 mt-0.5">
                           {t.target_audience && (
                             <span className="text-xs text-gray-500">👥 {t.target_audience}</span>

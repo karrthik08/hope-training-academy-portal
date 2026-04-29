@@ -2,6 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from app.core.config import settings
+from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,8 +51,8 @@ async def notify_new_registration(user_email: str, user_name: str, role: str):
     await send_notification_email(subject, body)
 
 
-async def notify_training_enrollment(user_name: str, user_email: str, training_title: str):
-    """Notify admin of training enrollment"""
+async def notify_training_enrollment(user_name: str, user_email: str, training_title: str, instructor_email: Optional[str] = None):
+    """Notify instructor (or admin if no instructor) of training enrollment"""
     subject = f"New Training Enrollment - {training_title}"
     body = f"""
     <html>
@@ -62,11 +63,11 @@ async def notify_training_enrollment(user_name: str, user_email: str, training_t
         </body>
     </html>
     """
-    await send_notification_email(subject, body)
+    await send_notification_email(subject, body, to_email=instructor_email)
 
 
-async def notify_training_completion(user_name: str, user_email: str, training_title: str, certificate_id: str):
-    """Notify admin of training completion"""
+async def notify_training_completion(user_name: str, user_email: str, training_title: str, certificate_id: str, instructor_email: Optional[str] = None):
+    """Notify instructor (or admin if no instructor) of training completion"""
     subject = f"Training Completed - {training_title}"
     body = f"""
     <html>
@@ -78,7 +79,7 @@ async def notify_training_completion(user_name: str, user_email: str, training_t
         </body>
     </html>
     """
-    await send_notification_email(subject, body)
+    await send_notification_email(subject, body, to_email=instructor_email)
 
 
 async def notify_course_submitted_for_review(instructor_name: str, course_title: str, course_id: int):
