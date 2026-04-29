@@ -20,13 +20,13 @@ router = APIRouter(prefix="/trainings", tags=["trainings"])
 @router.get("/all", response_model=List[TrainingOut])
 async def list_all_trainings(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     status: Optional[str] = None,
     category: Optional[str] = None,
 ):
     """Get all trainings for admin/instructor dashboards"""
-    user_roles = current_user.get("roles", [])
-    user_email = current_user.get("email", "")
+    user_roles = {ur.role.name for ur in current_user.user_roles}
+    user_email = current_user.email
     
     # Check permissions
     if "Admin" not in user_roles and "Instructor" not in user_roles:
