@@ -29,7 +29,8 @@ export default function NotificationBell() {
 
   const loadUnreadCount = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/notifications/unread-count`, {
+      // FIXED: Removed /api/v1 - baseURL already has it
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/unread-count`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
       const data = await response.json();
@@ -41,7 +42,8 @@ export default function NotificationBell() {
 
   const loadNotifications = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/notifications/my?limit=10`, {
+      // FIXED: Removed /api/v1 - baseURL already has it
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/my?limit=10`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
       const data = await response.json();
@@ -60,7 +62,8 @@ export default function NotificationBell() {
 
   const markAsRead = async (notificationId) => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/notifications/${notificationId}/mark-read`, {
+      // FIXED: Removed /api/v1 and added missing /
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/${notificationId}/mark-read`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
@@ -74,7 +77,8 @@ export default function NotificationBell() {
 
   const markAllAsRead = async () => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/notifications/mark-all-read`, {
+      // FIXED: Removed /api/v1 and added missing /
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/mark-all-read`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
