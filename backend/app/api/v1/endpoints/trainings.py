@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 import uuid
 from app.db.session import get_db
@@ -13,17 +13,59 @@ from app.services.audit import log_action
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 
-@router.get("/public", response_model=List[TrainingOut])
-async def list_published_trainings(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Training).where(Training.status == TrainingStatus.published))
-    return result.scalars().all()
+# ============================================================================
+# NEW ENDPOINT - Get ALL trainings for dashboards
+# THIS MUST BE FIRST (before any routes with {training_id})
+# ============================================================================
 
 @router.get("/", response_model=List[TrainingOut])
 async def list_all_trainings(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles("Admin", "Instructor")),
+    status: Optional[str] = None,
+    category: Optional[str] = None,
 ):
-    result = await db.execute(select(Training))
+    """
+    Get all trainings - for admin and instructor dashboards.
+    
+    Query Parameters:
+    - status: Filter by training status (draft, submitted, approved, published)
+    - category: Filter by category
+    
+    Access Control:
+    - Admins: See all trainings
+    - Instructors: See only their own trainings
+    """
+    query = select(Training)
+    
+    # Get user roles - check if user is admin
+    user_roles = [role.name for role in current_user.roles] if hasattr(current_user, 'roles') else []
+    
+    # If instructor (not admin), filter to only their trainings
+    if "Instructor" in user_roles and "Admin" not in user_roles:
+        query = query.where(Training.instructor_email == current_user.email)
+    
+    # Apply status filter if provided
+    if status:
+        query = query.where(Training.status == status)
+    
+    # Apply category filter if provided
+    if category:
+        query = query.where(Training.category == category)
+    
+    # Order by most recent first
+    query = query.order_by(Training.created_at.desc())
+    
+    result = await db.execute(query)
+    return result.scalars().all()
+
+# ============================================================================
+# Original endpoints below (unchanged)
+# ============================================================================
+
+@router.get("/public", response_model=List[TrainingOut])
+async def list_published_trainings(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Training).where(Training.status == TrainingStatus.published))
     return result.scalars().all()
 
 @router.get("/{training_id}", response_model=TrainingOut)
