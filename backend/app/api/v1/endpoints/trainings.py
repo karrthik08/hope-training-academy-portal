@@ -36,7 +36,7 @@ async def list_all_trainings(
     
     # Filter by instructor email if not admin
     if "Instructor" in user_roles and "Admin" not in user_roles:
-        query = query.where(Training.instructor_email == user_email)
+        query = query.where(Training.created_by == current_user.id)
     
     # Apply filters
     if status:
