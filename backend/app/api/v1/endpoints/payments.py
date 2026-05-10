@@ -49,10 +49,7 @@ async def create_checkout_session(
         # Convert price to cents (Stripe uses smallest currency unit)
         amount_cents = int(price * 100)
         
-        # Get frontend URL from CORS settings (avoid backslash in f-string)
-        cors_origins = settings.CORS_ORIGINS
-        # Remove brackets and quotes, split by comma, take first URL
-        frontend_url = cors_origins.replace('[', '').replace(']', '').replace('"', '').split(',')[0].strip()
+        frontend_url = "https://hope-frontend-qm4p.onrender.com"
         
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
