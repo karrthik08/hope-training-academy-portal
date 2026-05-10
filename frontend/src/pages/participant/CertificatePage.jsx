@@ -11,7 +11,7 @@ export default function CertificatePage() {
     const token = localStorage.getItem("hope_access_token") || "";
     const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
     
-    fetch(`${API_BASE}/api/v1/enrollments/${enrollmentId}/certificate`, {
+    fetch(`${API_BASE}/enrollments/${enrollmentId}/certificate`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(r => {
