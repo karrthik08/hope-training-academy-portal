@@ -109,14 +109,14 @@ export const createCheckoutSession = async (trainingId) => {
 }
 
 export const verifyPayment = async (sessionId) => {
-  const response = await api.get(`/payments/verify-payment/${sessionId}`)
-  return response.data
-}
+  const response = await api.get(`/verify-payment/${sessionId}`);
+  return response.data;
+};
 
 export const enrollAfterPayment = async (trainingId) => {
-  const response = await api.post('/payments/enroll-after-payment', { training_id: trainingId })
-  return response.data
-}
+  const response = await api.post('/enroll-after-payment', { training_id: trainingId });
+  return response.data;
+};
 
 // Missing exports that other components need
 export const enroll = enrollInTraining
