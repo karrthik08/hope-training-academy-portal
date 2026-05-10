@@ -104,7 +104,7 @@ export const getEnrollmentById = async (enrollmentId) => {
 
 // Payment - Stripe Integration
 export const createCheckoutSession = async (trainingId) => {
-  const response = await api.post('/payments/create-checkout', { training_id: trainingId })
+  const response = await api.post('/create-checkout', { training_id: trainingId })
   return response.data
 }
 
