@@ -45,7 +45,7 @@ export default function AttendanceTracker() {
 
   const markAttendance = async (enrollmentId, status) => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/attendance/mark`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL}/attendance/mark`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

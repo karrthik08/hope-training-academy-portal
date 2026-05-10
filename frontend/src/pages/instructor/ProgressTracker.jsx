@@ -22,7 +22,7 @@ export default function ProgressTracker() {
       setTrainingTitle(trainingData.title);
 
       // Load progress summary
-      const summaryRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/progress/training/${trainingId}/summary`, {
+      const summaryRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/progress/training/${trainingId}/summary`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('hope_access_token')}` }
       });
       const summaryData = await summaryRes.json();
