@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://hope-backend-yc30.onrender.com/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://hope-backend-sad2.onrender.com/api/v1',
   headers: { 'Content-Type': 'application/json' },
 })
 
